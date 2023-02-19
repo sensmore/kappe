@@ -1,5 +1,5 @@
 """
-Convert mcap files, e.g. from ROS1 to ROS2.
+Convert mcap (ROS1 & ROS2) files.
 
 Message definitions:
     Message definitions are read from ROS and disk ./msgs/
@@ -46,8 +46,13 @@ def worker(arg: tuple[Path, Path, Settings, int]):
         conv = Converter(config, input_path, output_path)
         conv.process_file(tqdm_idx)
         conv.finish()
+
+    except KeyboardInterrupt:
+        logging.info('WORKER: Keyboard interrupt')
+        return
     except Exception:
         logging.exception('Failed to convert %s', input_path)
+
     logging.info('Done    %s', output_path)
 
 
@@ -75,8 +80,11 @@ def process(config: Settings, input_path: Path, output_path: Path, *, overwrite:
 
     pool = None
     try:
-        pool = Pool(config.general.threads, initializer=tqdm.set_lock, initargs=(tqdm.get_lock(),))
+        pool = Pool(min(config.general.threads, len(tasks)),
+                    initializer=tqdm.set_lock, initargs=(tqdm.get_lock(),))
         pool.map(worker, tasks)
+    except KeyboardInterrupt:
+        logging.info('Keyboard interrupt')
     finally:
         if pool is not None:
             pool.terminate()

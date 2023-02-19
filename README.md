@@ -6,14 +6,10 @@
 
 ## Usage
 
-- `kappe [-h] [--config CONFIG] [--overwrite] input`
+- `kappe [-h] [--config CONFIG] [--version] [--overwrite] input output`
 
 ## TODO
 
-- [ ] Plugins
-  - [ ] Pydantic for plugin config or as dict, so plugins can validate it them self
-  - [ ] load form defined path
-  - [ ] ouster, define json in config
 - [ ] Add QOS module
   - [ ] validate QOS yaml
 - [ ] document everything
@@ -21,4 +17,3 @@
   - [ ] reframe message
   - [ ] insert static
 - [ ] generate documentation from pydantic
-- [ ] separate worker task and scheduler

@@ -158,9 +158,10 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
             org_schema: Schema = self.summary.schemas[channel.schema_id]
             if org_schema.name not in self.schema_list:
                 logging.warning(
-                    'Schema "%s" not found, skipping channel "%s".',
+                    'Channel "%s" missing schema "%s", skipping.',
+                    channel.topic,
                     org_schema.name,
-                    channel.topic)
+                )
                 continue
             schema_id: int = self.schema_list[org_schema.name].id
 
@@ -361,7 +362,6 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                     msg_count += self.summary.statistics.channel_message_counts[chan.id]
 
             logging.info('Total messages: %d, filtered messages: %d', total_count, msg_count)
-            logging.info('Topics: %s', filtered_channels)
         else:
             msg_count = None
 
