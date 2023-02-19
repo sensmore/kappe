@@ -14,6 +14,7 @@ from mcap_ros2.reader import read_ros2_messages
 from mcap_ros2.writer import Writer as McapWriter
 from tqdm import tqdm
 
+from kappe import __version__
 from kappe.module.pointcloud import point_cloud
 from kappe.module.tf import tf_remove
 from kappe.module.timing import fix_ros1_time, time_offset
@@ -61,13 +62,12 @@ class Converter:
         self.plugin_conv: dict[str, list[tuple[ConverterPlugin, str]]] = {}
 
         # load plugins
-        if self.config.plugin_folder is not None:
-            for conv in config.plugins:
-                lst = self.plugin_conv.get(conv.input_topic, [])
-                cls = load_plugin(self.config.plugin_folder, conv.name)
+        for conv in config.plugins:
+            lst = self.plugin_conv.get(conv.input_topic, [])
+            cls = load_plugin(self.config.plugin_folder, conv.name)
 
-                lst.append((cls(**conv.settings), conv.output_topic))
-                self.plugin_conv[conv.input_topic] = lst
+            lst.append((cls(**conv.settings), conv.output_topic))
+            self.plugin_conv[conv.input_topic] = lst
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 

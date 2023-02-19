@@ -6,18 +6,18 @@ Message definitions:
     git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.git msgs
 """
 
-__version__ = '0.3.0'
-
 import argparse
 import logging
-from multiprocessing import Pool, RLock, cpu_count
+from multiprocessing import Pool, RLock
 from pathlib import Path
 from typing import Any
 
 import yaml
 from tqdm import tqdm
 
+from kappe import __version__
 from kappe.convert import Converter
+from kappe.plugin import load_plugin
 from kappe.settings import Settings
 
 
@@ -51,6 +51,38 @@ def worker(arg: tuple[Path, Path, Settings, int]):
     logging.info('Done    %s', output_path)
 
 
+def process(config: Settings, input_path: Path, output_path: Path, *, overwrite: bool) -> None:
+    tasks: list[tuple[Path, Path, Settings, int]] = []
+
+    # TODO: make more generic
+    if input_path.is_file():
+        mcap_out = output_path / input_path.name
+        if mcap_out.exists() and not overwrite:
+            logging.info('File exists: %s -> skipping', mcap_out)
+        else:
+            tasks.append((input_path, mcap_out, config, 0))
+    else:
+        for idx, mcap_in in enumerate(input_path.rglob('**/*.mcap')):
+            mcap_out = output_path / mcap_in.relative_to(input_path.parent)
+
+            if mcap_out.exists() and not overwrite:
+                logging.info('File exists: %s -> skipping', mcap_out)
+                continue
+            tasks.append((mcap_in, mcap_out, config, idx))
+
+    logging.info('Using %d threads', config.general.threads)
+    tqdm.set_lock(RLock())  # for managing output contention
+
+    pool = None
+    try:
+        pool = Pool(config.general.threads, initializer=tqdm.set_lock, initargs=(tqdm.get_lock(),))
+        pool.map(worker, tasks)
+    finally:
+        if pool is not None:
+            pool.terminate()
+            pool.join()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -60,6 +92,7 @@ def main() -> None:
     parser.add_argument('input', type=str, help='input folder')
     parser.add_argument('output', type=str, help='output folder')
     parser.add_argument('--config', type=str, help='config file')
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument(
         '--overwrite',
         action='store_true',
@@ -80,11 +113,14 @@ def main() -> None:
         logging.error('msg_folder does not exist: %s', config.msg_folder)
         config.msg_folder = None
 
-    # check for plugins folder
-    if config.plugin_folder is not None and not config.plugin_folder.exists() \
-            and len(config.plugins) > 0:
-        logging.error('plugin_folder does not exist: %s', config.plugin_folder)
-        config.plugin_folder = None
+    for conv in config.plugins:
+        try:
+            load_plugin(config.plugin_folder, conv.name)
+            continue
+        except ValueError:
+            pass
+
+        logging.error('Failed to load plugin: %s', conv.name)
 
     input_path = Path(args.input)
     if not input_path.exists():
@@ -92,39 +128,7 @@ def main() -> None:
 
     output_path = Path(args.output)
 
-    tasks: list[tuple[Path, Path, Settings, int]] = []
-
-    # TODO: make more generic
-    if input_path.is_file():
-        mcap_out = output_path / input_path.name
-        if mcap_out.exists() and not args.overwrite:
-            logging.info('File exists: %s -> skipping', mcap_out)
-        else:
-            tasks.append((input_path, mcap_out, config, 0))
-    else:
-        for idx, mcap_in in enumerate(input_path.rglob('**/*.mcap')):
-            mcap_out = output_path / mcap_in.relative_to(input_path.parent)
-
-            if mcap_out.exists() and not args.overwrite:
-                logging.info('File exists: %s -> skipping', mcap_out)
-                continue
-            tasks.append((mcap_in, mcap_out, config, idx))
-
-    thread_count = cpu_count()
-    if config.general.threads is not None:
-        thread_count = config.general.threads
-
-    logging.info('Using %d threads', thread_count)
-    tqdm.set_lock(RLock())  # for managing output contention
-
-    pool = None
-    try:
-        pool = Pool(thread_count, initializer=tqdm.set_lock, initargs=(tqdm.get_lock(),))
-        pool.map(worker, tasks)
-    finally:
-        if pool is not None:
-            pool.terminate()
-            pool.join()
+    process(config, input_path, output_path, overwrite=args.overwrite)
 
 
 if __name__ == '__main__':

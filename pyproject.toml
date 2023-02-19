@@ -4,19 +4,20 @@ authors = [{ name = "Marko Bausch", email = "marko.bausch@sensmore.ai" }]
 description = "Converts ROS MCAPs"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "0.3.0"
 
 classifiers = ["Private :: Do Not Upload"]
 dependencies = [
-    "mcap",
-    "mcap-ros1-support", # maybe make optional
-    "mcap-ros2-support",
+    "mcap>=0.3.0",
+    "mcap-ros1-support>=0.6.0", # maybe make optional
+    "mcap-ros2-support>=0.3.0",
     "numpy",
     "pydantic",
     "pyyaml",
     "scipy",
     "tqdm",
 ]
+
+dynamic = ["version"]
 
 # autopep8
 # ruff
@@ -35,6 +36,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["kappe"]
 
+[tool.setuptools.dynamic]
+version = {attr = "kappe.__version__"}
+
 [tool.autopep8]
 aggressive = 3
 recursive = true
@@ -47,7 +51,7 @@ select = [
     'F',   # Pyflakes
     'W',   # pycodestyle
     'E',   # pycodestyle
-    'C90', # mccabe
+    # 'C90', # mccabe
     'I',   # isort
     'N',   # pep8-naming
     'D',   # pydocstyle
@@ -118,7 +122,8 @@ ignore = [
     'TRY002',
     'TRY003',
 
-    'PLR0913',
+    'PLR0912',
+    'PLR0915',
 ]
 
 src = ['kappe']
