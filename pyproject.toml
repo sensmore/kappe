@@ -1,11 +1,18 @@
 [project]
 name = "kappe"
-authors = [{ name = "Marko Bausch", email = "marko.bausch@sensmore.ai" }]
+authors = [{ name = "Marko Bausch" }]
 description = "Converts ROS MCAPs"
 readme = "README.md"
 requires-python = ">=3.10"
 
-classifiers = ["Private :: Do Not Upload"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Robot Framework :: Tool",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.10",
+
+]
+
 dependencies = [
     "mcap>=0.3.0",
     "mcap-ros1-support>=0.6.0", # maybe make optional
@@ -19,13 +26,6 @@ dependencies = [
 
 dynamic = ["version"]
 
-# autopep8
-# ruff
-# mypy
-# types-tqdm
-# types-pyyaml
-# types-Pillow
-
 [project.scripts]
 kappe = "kappe.kappe:main"
 
@@ -37,7 +37,7 @@ build-backend = "setuptools.build_meta"
 packages = ["kappe"]
 
 [tool.setuptools.dynamic]
-version = {attr = "kappe.__version__"}
+version = { attr = "kappe.__version__" }
 
 [tool.autopep8]
 aggressive = 3
@@ -48,52 +48,55 @@ max_line_length = 100
 line-length = 100
 exclude = ['msgs']
 select = [
-    'F',   # Pyflakes
-    'W',   # pycodestyle
-    'E',   # pycodestyle
+    'F',    # Pyflakes
+    'E',    # pycodestyle
+    'W',    # pycodestyle
     # 'C90', # mccabe
-    'I',   # isort
-    'N',   # pep8-naming
-    'D',   # pydocstyle
-    'UP',  # pyupgrade
-    'N',   # pep8-naming
-    'YTT', # flake8-2020
-    # 'ANN',      # flake8-annotations
-    'S',   # flake8-bandit
-    'BLE', # flake8-blind-except
-    'FBT', # flake8-boolean-trap
-    'B',   # flake8-bugbear
-    'A',   # flake8-builtins
-    'COM', # flake8-commas
-    'C4',  # flake8-comprehensions
-    'DTZ', # flake8-datetimez
-    'T10', # flake8-debugger
-    'EM',  # flake8-errmsg
-    # 'EXE',      # flake8-executable
-    'ISC', # flake8-implicit-str-concat
-    'ICN', # flake8-import-conventions
-    # 'G',        # flake8-logging-format
-    # 'INP',      # flake8-no-pep420
-    'PIE', # flake8-pie
-    'ICN', # flake8-import-conventions
-    'T20', # flake8-print
-    'PT',  # flake8-pytest-style
-    'Q',   # flake8-quotes
-    'RET', # flake8-return
-    'SIM', # flake8-simplify
-    'TID', # flake8-tidy-imports
-    # 'TCH',      # flake8-type-checking
-    'ARG', # flake8-unused-arguments
-    'PTH', # flake8-use-pathlib
-    'ERA', # eradicate
-    'PD',  # pandas-vet
-    'PGH', # pygrep-hooks
-    'PLC', # Pylint
-    'PLE', # Pylint
-    'PLR', # Pylint
-    'PLW', # Pylint
-    'TRY', # tryceratops
-    'RUF', # Ruff-specific rules
+    'I',    # isort
+    'N',    # pep8-naming
+    'D',    # pydocstyle
+    'UP',   # pyupgrade
+    'YTT',  # flake8-2020
+    'ANN',  # flake8-annotations
+    'S',    # flake8-bandit
+    'BLE',  # flake8-blind-except
+    'FBT',  # flake8-boolean-trap
+    'B',    # flake8-bugbear
+    'A',    # flake8-builtins
+    'COM',  # flake8-commas
+    'C4',   # flake8-comprehensions
+    'DTZ',  # flake8-datetimez
+    'T10',  # flake8-debugger
+    'DJ',   # flake8-django
+    'EM',   # flake8-errmsg
+    'EXE',  # flake8-executable
+    'ISC',  # flake8-implicit-str-concat
+    'ICN',  # flake8-import-conventions
+    'G',    # flake8-logging-format
+    'INP',  # flake8-no-pep420
+    'PIE',  # flake8-pie
+    'T20',  # flake8-print
+    'PYI',  # flake8-pyi
+    'PT',   # flake8-pytest-style
+    'Q',    # flake8-quotes
+    'RSE',  # flake8-raise
+    'RET',  # flake8-return
+    'SLF',  # flake8-self
+    'SIM',  # flake8-simplify
+    'TID',  # flake8-tidy-imports
+    # 'TCH',  # flake8-type-checking
+    'ARG',  # flake8-unused-arguments
+    'PTH',  # flake8-use-pathlib
+    'ERA',  # eradicate
+    'PD',   # pandas-vet
+    'PGH',  # pygrep-hooks
+    'PLC',  # Pylint
+    'PLE',  # Pylint
+    'PLR',  # Pylint
+    'PLW',  # Pylint
+    'TRY',  # tryceratops
+    'NPY',  # NumPy-specific rules
+    'RUF',  # Ruff-specific rules
 ]
 
 ignore = [
@@ -112,18 +115,18 @@ ignore = [
     'ANN101', # MissingTypeFunctionArgument
     'ANN401', # dynamically-typed-expression
 
-    'D203',    # one-blank-line-before-class
-    'S101',    # AssertUsed
+    'EM101', # raw-string-in-exception
+    'EM102', # f-string-in-exception
+
+    'PLR0912', # too-many-branches
+    'PLR0915', # too-many-statements
     'PLR2004', # MagicValueComparison
-    'D401',    # non-imperative-mood
 
-    'EM101',
-    'EM102',
-    'TRY002',
-    'TRY003',
+    'S101', # AssertUsed
 
-    'PLR0912',
-    'PLR0915',
+    'TRY003', # raise-vanilla-args
+
+    'N999', # invalid-module-name TEMPORARY
 ]
 
 src = ['kappe']
@@ -136,5 +139,4 @@ inline-quotes = 'single'
 
 [tool.ruff.flake8-annotations]
 mypy-init-return = true
-
 suppress-none-returning = true

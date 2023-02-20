@@ -39,10 +39,10 @@ class SettingTF(BaseModel, extra=Extra.forbid):
 def tf_static_insert(cfg: SettingTF, msg: McapROSMessage):
     ros_msg = msg.ros_msg
 
-    if not cfg._inserted and cfg.insert is not None and len(
+    if not cfg._inserted and cfg.insert is not None and len(  # noqa: SLF001
             ros_msg.transforms) > 0:
         header = ros_msg.transforms[0].header
-        cfg._inserted = True
+        cfg._inserted = True  # noqa: SLF001
         for insert in cfg.insert:
             tf_msg = ClassDict(
                 header=copy.deepcopy(header),

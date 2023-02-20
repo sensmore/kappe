@@ -86,11 +86,11 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
         summ = self.reader.get_summary()
 
         if summ is None:
-            raise Exception('Unindexed mcap!')
+            raise ValueError('Unindexed mcap!')
 
         self.summary: Summary = summ
         if self.summary.statistics is None:
-            raise Exception('Statistics not found in mcap!')
+            raise ValueError('Statistics not found in mcap!')
 
         self.statistics: Statistics = self.summary.statistics
 
@@ -167,7 +167,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
 
             topic = self.config.topic.mapping.get(topic, topic)
             # Workaround, to set metadata for the channel
-            if topic not in self.writer._channel_ids:
+            if topic not in self.writer._channel_ids:  # noqa: SLF001
                 if self.mcap_header.profile == Profile.ROS1:
                     metadata = {
                         'offered_qos_profiles': generate_qos({
@@ -186,13 +186,13 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                     metadata['offered_qos_profiles'] = generate_qos(
                         old_qos | new_qos)
 
-                channel_id = self.writer._writer.register_channel(
+                channel_id = self.writer._writer.register_channel(  # noqa: SLF001
                     topic=topic,
                     message_encoding='cdr',
                     schema_id=schema_id,
                     metadata=metadata,
                 )
-                self.writer._channel_ids[topic] = channel_id
+                self.writer._channel_ids[topic] = channel_id  # noqa: SLF001
 
     def read_ros_messaged(self,
                           topics: Iterable[str] | None = None,
@@ -382,7 +382,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
 
     def finish(self):
         # save used convert config
-        self.writer._writer.add_attachment(
+        self.writer._writer.add_attachment(  # noqa: SLF001
             create_time=time.time_ns(),
             log_time=time.time_ns(),
             name='convert_config.yaml',
@@ -391,7 +391,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
         )
 
         # store useful information
-        self.writer._writer.add_metadata(
+        self.writer._writer.add_metadata(  # noqa: SLF001
             name='convert_metadata',
             data={
                 'input_path': str(self.input_path),
