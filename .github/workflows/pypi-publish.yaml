@@ -1,0 +1,30 @@
+name: Lint
+
+on:
+  push:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 10
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - uses: pre-commit/action@v3.0.0
+        id: pre_commit
+        with:
+          extra_args: --from-ref HEAD~1 --to-ref HEAD
+
+
+      - name: Install build
+        run:  python3 -m pip install --upgrade build
+
+      - name: Building
+        run:  python3 -m build
