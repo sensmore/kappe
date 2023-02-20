@@ -22,9 +22,28 @@ jobs:
         with:
           extra_args: --from-ref HEAD~1 --to-ref HEAD
 
+  build:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: lint
 
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 10
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
       - name: Install build
         run:  python3 -m pip install --upgrade build
 
       - name: Building
         run:  python3 -m build
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
