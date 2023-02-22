@@ -6,8 +6,14 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+logger = logging.getLogger(__name__)
+
 
 class ConverterPlugin(ABC):
+
+    def __init__(self, **_kwargs: Any):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
     @property
     @abstractmethod
     def output_schema(self) -> str:
@@ -44,20 +50,20 @@ def load_plugin(base_folder: Path | None, plugin_name: str) -> Callable[..., Con
 
         plugin_file = path / f'{pkg_name}.py'
         if not plugin_file.exists():
-            logging.debug('Plugin %s does not exist in %s', plugin_name, path)
+            logger.debug('Plugin %s does not exist in %s', plugin_name, path)
             continue
 
         try:
             module = SourceFileLoader(pkg_name, str(plugin_file)).load_module()
         except ImportError:
-            logging.debug('Plugin %s could not be loaded from %s', plugin_name, path)
+            logger.debug('Plugin %s could not be loaded from %s', plugin_name, path)
             continue
 
         if hasattr(module, class_name):
-            logging.debug('Plugin %s loaded from %s', plugin_name, path)
+            logger.debug('Plugin %s loaded from %s', plugin_name, path)
             return getattr(module, class_name)
 
-        logging.error('Plugin %s does not have class %s', plugin_name, class_name)
-        logging.info('Available plugins: %s', ', '.join(module_get_plugins(module)))
+        logger.error('Plugin %s does not have class %s', plugin_name, class_name)
+        logger.info('Available plugins: %s', ', '.join(module_get_plugins(module)))
 
     raise ValueError(f'Plugin file {plugin_name} does not exist')

@@ -3,19 +3,23 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from kappe.plugin import ConverterPlugin
+
+logger = logging.getLogger(__name__)
+
 try:
     from PIL import Image
 except ImportError as err:
-    logging.warning('PIL not installed. Install with "pip install pillow"')
+    logger.warning('PIL not installed. Install with "pip install pillow"')
     raise ImportError from err
-
-from kappe.plugin import ConverterPlugin
 
 
 class CompressImage(ConverterPlugin):
 
-    def __init__(self, *, quality: int = 10):
+    def __init__(self, *, quality: int = 95):
+        super().__init__()
         self.quality = quality
+        self.logger.debug('quality=%d', quality)
 
     def convert(self, ros_msg: Any) -> Any:
 

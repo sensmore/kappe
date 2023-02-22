@@ -4,19 +4,19 @@ from pathlib import Path
 # TODO: vendor this
 from mcap_ros2._vendor.rosidl_adapter import parser as ros2_parser
 
+logger = logging.getLogger(__name__)
+
 try:
     from rosidl_runtime_py import get_interface_path
     from rosidl_runtime_py.utilities import get_message
 except ImportError:
+    logger.debug('rosidl_runtime_py not found')
     get_interface_path = None
     get_message = None
 
 
 def get_msg_def_ros(msg: str) -> str | None:
-    if get_message is None:
-        return None
-
-    if get_interface_path is None:
+    if get_message is None or get_interface_path is None:
         return None
 
     text = ''
@@ -32,7 +32,7 @@ def get_msg_def_ros(msg: str) -> str | None:
 
         ret = get_msg_def_ros(type_name)
         if ret is None:
-            logging.error('Failed to find definition for %s', type_name)
+            logger.error('Failed to find definition for %s', type_name)
             return None
 
         text += ret
@@ -85,7 +85,7 @@ def get_msg_def_disk(msg: str, folder: Path) -> str | None:
 
         field_text = get_msg_def_disk(f'{f_type.pkg_name}/{f_type.type}', folder)
         if field_text is None:
-            logging.error(
+            logger.error(
                 'Failed to find definition for %s/%s',
                 f_type.pkg_name,
                 f_type.type)

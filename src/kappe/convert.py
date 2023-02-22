@@ -23,6 +23,8 @@ from kappe.settings import Settings
 from kappe.utils.msg_def import get_msg_def
 from kappe.utils.types import McapROSMessage
 
+logger = logging.getLogger(__name__)
+
 
 def generate_qos(config: dict) -> str:
     qos_default = {
@@ -51,10 +53,11 @@ def generate_qos(config: dict) -> str:
 
 class Converter:
 
-    def __init__(self, config: Settings, input_path: Path, output_path: Path):
+    def __init__(self, config: Settings, input_path: Path, output_path: Path, raw_config: str = ''):
         self.config = config
         self.input_path = input_path
         self.output_path = output_path
+        self.raw_config = raw_config
 
         self.drop_msg_count: dict[str, int] = {}
 
@@ -66,7 +69,7 @@ class Converter:
             lst = self.plugin_conv.get(conv.input_topic, [])
             cls = load_plugin(self.config.plugin_folder, conv.name)
 
-            lst.append((cls(**conv.settings), conv.output_topic))
+            lst.append((cls(**conv.config), conv.output_topic))
             self.plugin_conv[conv.input_topic] = lst
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,7 +82,7 @@ class Converter:
 
         self.mcap_header = self.reader.get_header()
         if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
-            logging.error("""msg_folder is required for ROS1 mcap!
+            logger.error("""msg_folder is required for ROS1 mcap!
 You can get common message definitions from:
 git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.git msgs""")
 
@@ -103,7 +106,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
     def init_schema(self):
         for schema in self.summary.schemas.values():
             if schema.encoding not in [SchemaEncoding.ROS1, SchemaEncoding.ROS2]:
-                logging.warning(
+                logger.warning(
                     'Schema "%s" has unsupported encoding "%s", skipping.',
                     schema.name,
                     schema.encoding)
@@ -129,7 +132,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                 if new_data is not None:
                     schema_def = new_data
                 else:
-                    logging.warning(
+                    logger.warning(
                         'Schema "%s" not found, skipping.', schema.name)
                     continue
 
@@ -157,7 +160,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
             topic = channel.topic
             org_schema: Schema = self.summary.schemas[channel.schema_id]
             if org_schema.name not in self.schema_list:
-                logging.warning(
+                logger.warning(
                     'Channel "%s" missing schema "%s", skipping.',
                     channel.topic,
                     org_schema.name,
@@ -329,7 +332,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
 
             tf_static_channel = tf_static_channel[0]
             tf_static_amount = self.statistics.channel_message_counts[tf_static_channel.id]
-            logging.info('Found %d tf_static messages', tf_static_amount)
+            logger.info('Found %d tf_static messages', tf_static_amount)
             # read all tf_static messages
             tf_static_iter = self.read_ros_messaged(topics=['/tf_static'])
 
@@ -372,9 +375,9 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
         if msg_iter is None:
             raise ValueError('msg_iter is None')
 
-        logging.info('Topics: %d, filtered topics: %d', len(
+        logger.info('Topics: %d, filtered topics: %d', len(
             self.summary.channels), len(filtered_channels))
-        logging.debug('Filtered topics: %s', filtered_channels)
+        logger.debug('Filtered topics: %s', filtered_channels)
         start_time = int(start_time * 1e3)  # convert to ms
         end_time = int(end_time * 1e3)  # convert to ms
 

@@ -32,28 +32,32 @@ class TqdmLoggingHandler(logging.Handler):
 
 
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s | %(levelname)s | %(message)s',
-    datefmt='%Y-%m-%dT%H:%M:%S%z',
+    level=logging.INFO,
+    format='%(levelname)-7s | %(name)s | %(message)s',
+    datefmt='%H:%M:%S',
     handlers=[TqdmLoggingHandler()],
 )
 
+logger = logging.getLogger(__name__)
+
 
 def worker(arg: tuple[Path, Path, Settings, int]):
+    # TODO: dataclass
     input_path, output_path, config, tqdm_idx = arg
-    logging.info('Writing %s', output_path)
+
+    logger.info('Writing %s', output_path)
     try:
         conv = Converter(config, input_path, output_path)
         conv.process_file(tqdm_idx)
         conv.finish()
 
     except KeyboardInterrupt:
-        logging.info('WORKER: Keyboard interrupt')
+        logger.info('WORKER: Keyboard interrupt')
         return
     except Exception:
-        logging.exception('Failed to convert %s', input_path)
+        logger.exception('Failed to convert %s', input_path)
 
-    logging.info('Done    %s', output_path)
+    logger.info('Done    %s', output_path)
 
 
 def process(config: Settings, input_path: Path, output_path: Path, *, overwrite: bool) -> None:
@@ -63,7 +67,7 @@ def process(config: Settings, input_path: Path, output_path: Path, *, overwrite:
     if input_path.is_file():
         mcap_out = output_path / input_path.name
         if mcap_out.exists() and not overwrite:
-            logging.info('File exists: %s -> skipping', mcap_out)
+            logger.info('File exists: %s -> skipping', mcap_out)
         else:
             tasks.append((input_path, mcap_out, config, 0))
     else:
@@ -71,11 +75,11 @@ def process(config: Settings, input_path: Path, output_path: Path, *, overwrite:
             mcap_out = output_path / mcap_in.relative_to(input_path.parent)
 
             if mcap_out.exists() and not overwrite:
-                logging.info('File exists: %s -> skipping', mcap_out)
+                logger.info('File exists: %s -> skipping', mcap_out)
                 continue
             tasks.append((mcap_in, mcap_out, config, idx))
 
-    logging.info('Using %d threads', config.general.threads)
+    logger.info('Using %d threads', config.general.threads)
     tqdm.set_lock(RLock())  # for managing output contention
 
     pool = None
@@ -84,7 +88,7 @@ def process(config: Settings, input_path: Path, output_path: Path, *, overwrite:
                     initializer=tqdm.set_lock, initargs=(tqdm.get_lock(),))
         pool.map(worker, tasks)
     except KeyboardInterrupt:
-        logging.info('Keyboard interrupt')
+        logger.info('Keyboard interrupt')
     finally:
         if pool is not None:
             pool.terminate()
@@ -118,11 +122,10 @@ def main() -> None:
             config_text = f.read()
         config_yaml = yaml.safe_load(config_text)
         config = Settings(**config_yaml)
-        config.raw_text = config_text
 
     # check for msgs folder
     if config.msg_folder is not None and not config.msg_folder.exists():
-        logging.error('msg_folder does not exist: %s', config.msg_folder)
+        logger.error('msg_folder does not exist: %s', config.msg_folder)
         config.msg_folder = None
 
     errors = False
@@ -135,7 +138,7 @@ def main() -> None:
             pass
 
         errors = True
-        logging.error('Failed to load plugin: %s', conv.name)
+        logger.error('Failed to load plugin: %s', conv.name)
 
     input_path = Path(args.input)
     if not input_path.exists():
@@ -144,7 +147,7 @@ def main() -> None:
     output_path = Path(args.output)
 
     if errors:
-        logging.error('Errors found, aborting')
+        logger.error('Errors found, aborting')
     else:
         process(config, input_path, output_path, overwrite=args.overwrite)
 

@@ -129,7 +129,7 @@ ignore = [
     'N999', # invalid-module-name TEMPORARY
 ]
 
-src = ['kappe']
+src = ['src']
 
 target-version = 'py310'
 
