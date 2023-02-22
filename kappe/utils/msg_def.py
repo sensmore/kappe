@@ -4,17 +4,21 @@ from pathlib import Path
 # TODO: vendor this
 from mcap_ros2._vendor.rosidl_adapter import parser as ros2_parser
 
-ROS_AVAILABLE = False
 try:
     from rosidl_runtime_py import get_interface_path
     from rosidl_runtime_py.utilities import get_message
-
-    ROS_AVAILABLE = True
 except ImportError:
-    pass
+    get_interface_path = None
+    get_message = None
 
 
-def get_msg_def_ros(msg: str) -> str:
+def get_msg_def_ros(msg: str) -> str | None:
+    if get_message is None:
+        return None
+
+    if get_interface_path is None:
+        return None
+
     text = ''
     fields = get_message(msg).get_fields_and_field_types()
 
@@ -26,7 +30,12 @@ def get_msg_def_ros(msg: str) -> str:
         if type_name.startswith('builtin_interfaces/'):
             continue
 
-        text += get_msg_def_ros(type_name)
+        ret = get_msg_def_ros(type_name)
+        if ret is None:
+            logging.error('Failed to find definition for %s', type_name)
+            return None
+
+        text += ret
 
     text += '========================================\n'
     text += f'MSG: {msg}\n'
@@ -88,9 +97,8 @@ def get_msg_def_disk(msg: str, folder: Path) -> str | None:
 
 def get_msg_def(msg: str, folder: Path | None = None) -> str | None:
     new_data = None
-    if ROS_AVAILABLE:
-        # use ROS to get the message definition
-        new_data = get_msg_def_ros(msg)
+
+    new_data = get_msg_def_ros(msg)
 
     if new_data is None and folder is not None:
         # use ./msgs/ to get the message definition

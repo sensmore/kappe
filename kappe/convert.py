@@ -163,6 +163,11 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                     org_schema.name,
                 )
                 continue
+
+            # skip removed topics
+            if channel.topic in self.config.topic.remove:
+                continue
+
             schema_id: int = self.schema_list[org_schema.name].id
 
             topic = self.config.topic.mapping.get(topic, topic)
@@ -194,12 +199,33 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                 )
                 self.writer._channel_ids[topic] = channel_id  # noqa: SLF001
 
+    def get_selected_channels(self) -> set[str]:
+        """Get a list of channels that should be converted."""
+        filtered_channels: set[str] = set()
+        for channel in self.summary.channels.values():
+            keep = True
+            # skip topics that are in the remove list
+            if channel.topic in self.config.topic.remove:
+                keep = False
+
+            # skip topics that are not in the schema list
+            schema_name = self.summary.schemas[channel.schema_id].name
+            if schema_name not in self.schema_list:
+                keep = False
+
+            if channel.topic in self.plugin_conv:
+                keep = True
+
+            if keep:
+                filtered_channels.add(channel.topic)
+
+        return filtered_channels
+
     def read_ros_messaged(self,
                           topics: Iterable[str] | None = None,
                           start_time: datetime | None = None,
                           end_time: datetime | None = None,
                           ) -> Iterator[McapROSMessage]:
-        msg_iter: None | Iterator[McapROSMessage] = None
         if self.mcap_header.profile == Profile.ROS1:
             msg_iter = read_ros1_messages(
                 self.reader,
@@ -224,6 +250,25 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
         schema_name = msg.schema.name
         topic = msg.channel.topic
 
+        # handling of converters
+        conv_list = self.plugin_conv.get(topic, [])
+        for conv, output_topic in conv_list:
+            conv_msg = conv.convert(ros_msg)
+            if conv_msg is not None:
+                # TODO: pass this to process_message?
+                self.writer.write_message(
+                    topic=output_topic,
+                    schema=self.schema_list[conv.output_schema],
+                    message=conv_msg,
+                    log_time=msg.log_time_ns,
+                    publish_time=msg.publish_time_ns,
+                    sequence=msg.sequence_count,
+                )
+
+        # late remove topics which are required by a plugin
+        if topic in self.config.topic.remove:
+            return
+
         # drop every n-th message
         if topic in self.config.topic.drop:
             drop_count = self.drop_msg_count.get(topic, 0)
@@ -235,20 +280,6 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
 
         if self.mcap_header.profile == Profile.ROS1:
             fix_ros1_time(msg.ros_msg)
-
-        # handling of converters
-        conv_list = self.plugin_conv.get(topic, [])
-        for conv, output_topic in conv_list:
-            conv_msg = conv.convert(ros_msg)
-            if conv_msg is not None:
-                self.writer.write_message(
-                    topic=output_topic,
-                    schema=self.schema_list[conv.output_schema],
-                    message=conv_msg,
-                    log_time=msg.log_time_ns,
-                    publish_time=msg.publish_time_ns,
-                    sequence=msg.sequence_count,
-                )
 
         # drop messages that are not in the schema list
         msg_schema = self.schema_list.get(schema_name)
@@ -268,7 +299,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
             point_cloud(self.config.point_cloud[topic], msg)
 
         self.writer.write_message(
-            topic=topic,
+            topic=self.config.topic.mapping.get(topic, topic),
             schema=self.schema_list[schema_name],
             message=ros_msg,
             log_time=msg.log_time_ns,
@@ -332,19 +363,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                 if count == tf_static_amount:
                     break
 
-        # gather all topics that should be processed
-        filtered_channels: set[str] = set()
-        for channel in self.summary.channels.values():
-            # skip topics that are in the remove list
-            if channel.topic in self.config.topic.remove:
-                continue
-
-            # skip topics that are not in the schema list
-            schema_name = self.summary.schemas[channel.schema_id].name
-            if schema_name not in self.schema_list and channel.topic not in self.plugin_conv:
-                continue
-
-            filtered_channels.add(channel.topic)
+        filtered_channels = self.get_selected_channels()
 
         msg_iter = self.read_ros_messaged(
             topics=filtered_channels,
@@ -353,18 +372,9 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
         if msg_iter is None:
             raise ValueError('msg_iter is None')
 
-        # prepare tqdm
-        if self.summary.statistics is not None:
-            total_count = sum(self.summary.statistics.channel_message_counts.values())
-            msg_count = 0
-            for topic in filtered_channels:
-                for chan in filter(lambda x: x.topic == topic, self.summary.channels.values()):
-                    msg_count += self.summary.statistics.channel_message_counts[chan.id]
-
-            logging.info('Total messages: %d, filtered messages: %d', total_count, msg_count)
-        else:
-            msg_count = None
-
+        logging.info('Topics: %d, filtered topics: %d', len(
+            self.summary.channels), len(filtered_channels))
+        logging.debug('Filtered topics: %s', filtered_channels)
         start_time = int(start_time * 1e3)  # convert to ms
         end_time = int(end_time * 1e3)  # convert to ms
 

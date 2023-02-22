@@ -1,4 +1,3 @@
-
 from mcap_ros1.reader import McapROS1Message
 from mcap_ros2.reader import McapROS2Message
 
