@@ -1,7 +1,9 @@
-import imp
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from importlib.machinery import SourceFileLoader
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 
@@ -14,6 +16,16 @@ class ConverterPlugin(ABC):
     @abstractmethod
     def convert(self, ros_msg: Any) -> Any:
         pass
+
+
+def module_get_plugins(module: ModuleType) -> list[str]:
+    """Get a list of available plugins in a module."""
+    return [
+        cls for cls in dir(module) if isinstance(
+            getattr(module, cls), type) and
+        issubclass(getattr(module, cls), ConverterPlugin) and
+        cls != 'ConverterPlugin'
+    ]
 
 
 def load_plugin(base_folder: Path | None, plugin_name: str) -> Callable[..., ConverterPlugin]:
@@ -32,9 +44,20 @@ def load_plugin(base_folder: Path | None, plugin_name: str) -> Callable[..., Con
 
         plugin_file = path / f'{pkg_name}.py'
         if not plugin_file.exists():
+            logging.debug('Plugin %s does not exist in %s', plugin_name, path)
             continue
 
-        module = imp.load_source(pkg_name, str(plugin_file))
-        return getattr(module, class_name)
+        try:
+            module = SourceFileLoader(pkg_name, str(plugin_file)).load_module()
+        except ImportError:
+            logging.debug('Plugin %s could not be loaded from %s', plugin_name, path)
+            continue
+
+        if hasattr(module, class_name):
+            logging.debug('Plugin %s loaded from %s', plugin_name, path)
+            return getattr(module, class_name)
+
+        logging.error('Plugin %s does not have class %s', plugin_name, class_name)
+        logging.info('Available plugins: %s', ', '.join(module_get_plugins(module)))
 
     raise ValueError(f'Plugin file {plugin_name} does not exist')

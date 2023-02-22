@@ -105,7 +105,11 @@ def main() -> None:
         '--overwrite',
         action='store_true',
         help='Overwrite existing files')
+    parser.add_argument('--verbose', action='store_true', help='Verbose output')
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.config is None:
         config = Settings()
@@ -121,6 +125,8 @@ def main() -> None:
         logging.error('msg_folder does not exist: %s', config.msg_folder)
         config.msg_folder = None
 
+    errors = False
+
     for conv in config.plugins:
         try:
             load_plugin(config.plugin_folder, conv.name)
@@ -128,6 +134,7 @@ def main() -> None:
         except ValueError:
             pass
 
+        errors = True
         logging.error('Failed to load plugin: %s', conv.name)
 
     input_path = Path(args.input)
@@ -136,7 +143,10 @@ def main() -> None:
 
     output_path = Path(args.output)
 
-    process(config, input_path, output_path, overwrite=args.overwrite)
+    if errors:
+        logging.error('Errors found, aborting')
+    else:
+        process(config, input_path, output_path, overwrite=args.overwrite)
 
 
 if __name__ == '__main__':
