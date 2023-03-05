@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 from kappe import __version__
 from kappe.convert import Converter
+from kappe.cut import CutSettings, cutter
 from kappe.plugin import load_plugin
 from kappe.settings import Settings
 
@@ -95,30 +96,11 @@ def process(config: Settings, input_path: Path, output_path: Path, *, overwrite:
             pool.join()
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        fromfile_prefix_chars='@',
-    )
-    parser.add_argument('input', type=str, help='input folder')
-    parser.add_argument('output', type=str, help='output folder')
-    parser.add_argument('--config', type=str, help='config file')
-    parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument(
-        '--overwrite',
-        action='store_true',
-        help='Overwrite existing files')
-    parser.add_argument('--verbose', action='store_true', help='Verbose output')
-    args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-
+def cmd_convert(args: argparse.Namespace):
     if args.config is None:
         config = Settings()
     else:
-        with Path(args.config).open(encoding='utf-8') as f:
+        with args.config.open(encoding='utf-8') as f:
             config_text = f.read()
         config_yaml = yaml.safe_load(config_text)
         config = Settings(**config_yaml)
@@ -140,16 +122,76 @@ def main() -> None:
         errors = True
         logger.error('Failed to load plugin: %s', conv.name)
 
-    input_path = Path(args.input)
+    input_path: Path = args.input
     if not input_path.exists():
         raise FileNotFoundError(f'Input path does not exist: {input_path}')
 
-    output_path = Path(args.output)
+    output_path: Path = args.output
 
     if errors:
         logger.error('Errors found, aborting')
     else:
         process(config, input_path, output_path, overwrite=args.overwrite)
+
+
+def cmd_cut(args: argparse.Namespace):
+    logger.info('cut')
+
+    config_text = args.config.read()
+    config_yaml = yaml.safe_load(config_text)
+    config = CutSettings(**config_yaml)
+
+    cutter(args.input, args.output, config)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        fromfile_prefix_chars='@',
+    )
+
+    parser.add_argument('--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--version', action='version', version=__version__)
+
+    sub = parser.add_subparsers(
+        title='subcommands',
+        required=True,
+    )
+
+    cutter = sub.add_parser('cut')
+    cutter.set_defaults(func=cmd_cut)
+
+    cutter.add_argument('input', type=Path, help='input file')
+    cutter.add_argument(
+        'output',
+        type=Path,
+        help='output folder, default: ./cut_out',
+        default=Path('./cut_out'),
+        nargs='?')
+    cutter.add_argument('--config', type=argparse.FileType(), help='config file', required=True)
+    cutter.add_argument(
+        '--overwrite',
+        action='store_true',
+        help='Overwrite existing files')
+
+    convert = sub.add_parser('convert')
+    convert.set_defaults(func=cmd_convert)
+
+    convert.add_argument('input', type=Path, help='input folder')
+    convert.add_argument('output', type=Path, help='output folder')
+    convert.add_argument('--config', type=Path, help='config file')
+    convert.add_argument(
+        '--overwrite',
+        action='store_true',
+        help='Overwrite existing files')
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    args.func(args)
 
 
 if __name__ == '__main__':
