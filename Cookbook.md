@@ -28,7 +28,7 @@ keep_tf_tree: true
 splits:
   - start:  1676549454.0
     end:    1676549554.0
-    name:   beginning.mcap
+    name:   beginning
   - start:  1676549554.0
     end:    1676549654.0
     name:   end.mcap
@@ -47,6 +47,7 @@ output_folder
 ## Split on topic
 
 Splits the mcap file into multiple files, every time a message on the topic `/marker` is read.
+The file will be split **before** the message is read.
 `debounce` is the time in seconds that the cutter will wait before splitting the file again, default is 0.
 
 ```yaml
@@ -148,6 +149,8 @@ tf_static:
 ```
 
 ### Insert Static Transform
+
+> Rotation can be specified in `euler_deg` or `quaternion`
 
 ```yaml
 tf_static:

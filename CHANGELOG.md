@@ -1,5 +1,10 @@
 # Changelog
 
+## unreleased
+
+- Cut validate input existence & duplicate outputs
+- Append `.mcap` if not present in output file
+
 ## 0.7.0
 
 - Added split on topic for cutter

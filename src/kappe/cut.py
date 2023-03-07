@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class CutSplits(BaseModel, extra=Extra.forbid):
-    # TODO: validate that start < end
     # TODO: validate that start is >= file start
     # TODO: validate that end is <= file end
     start: float
@@ -136,6 +135,16 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
     if settings.splits is None:
         raise ValueError('splits must be set')
 
+    # validate duplicate names
+    names = [split.name for split in settings.splits]
+    if len(names) != len(set(names)):
+        raise ValueError('Duplicate split names')
+
+    # append .mcap to outputs without it
+    for split in settings.splits:
+        if not split.name.endswith('.mcap'):
+            split.name += '.mcap'
+
     output.mkdir(parents=True, exist_ok=True)
 
     outputs: list[SplitWriter] = []
@@ -217,6 +226,9 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
 
 def cutter(input_file: Path, output: Path, settings: CutSettings) -> None:
     """Cut a file into multiple files."""
+    if not input_file.exists():
+        raise FileNotFoundError(f'Input file {input_file} does not exist')
+
     if settings.splits is not None:
         cutter_split(input_file, output, settings)
     else:
