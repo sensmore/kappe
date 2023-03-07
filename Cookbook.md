@@ -1,4 +1,6 @@
 - [Cutting an MCAP](#cutting-an-mcap)
+  - [Split on time](#split-on-time)
+  - [Split on topic](#split-on-topic)
 - [Converting](#converting)
   - [Topic](#topic)
     - [Rename a topic](#rename-a-topic)
@@ -16,6 +18,8 @@
 # Cutting an MCAP
 
 When `keep_tf_tree` is set to `true` all splits will have the same `/tf_static` messages.
+
+## Split on time
 
 > config.yaml
 
@@ -38,6 +42,19 @@ Results in a folder with the following structure:
 output_folder
 ├── beginning.mcap
 └── end.mcap
+```
+
+## Split on topic
+
+Splits the mcap file into multiple files, every time a message on the topic `/marker` is read.
+`debounce` is the time in seconds that the cutter will wait before splitting the file again, default is 0.
+
+```yaml
+keep_tf_tree: true
+split_on_topic:
+  topic: "/marker"
+  debounce: 10
+
 ```
 
 # Converting
