@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from mcap.reader import make_reader
 from mcap.records import Channel, Schema
 from mcap.writer import Writer
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, validator
 from tqdm import tqdm
 
 
@@ -15,6 +16,12 @@ class CutSplits(BaseModel, extra=Extra.forbid):
     start: float
     end: float
     name: str
+
+    @validator('end')
+    def validate_end(cls, v: float, values: dict[str, Any], **_kwargs: Any) -> float:
+        if v < values['start']:
+            raise ValueError('end must be greater than start')
+        return v
 
 
 class CutSettings(BaseModel, extra=Extra.forbid):
@@ -93,6 +100,7 @@ def cutter(input_file: Path, output: Path, settings: CutSettings) -> None:
                 continue
 
             if fist_message and settings.keep_tf_tree:
+                # TODO: validate tf_static_schema is not None
                 for i in range(len(settings.splits)):
                     w = outputs[i].writer
                     channel_id = get_channel_id(i, tf_static_schema, tf_static_channel)

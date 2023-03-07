@@ -12,7 +12,8 @@ from multiprocessing import Pool, RLock
 from pathlib import Path
 from typing import Any
 
-import yaml
+import pydantic
+import strictyaml
 from tqdm import tqdm
 
 from kappe import __version__
@@ -40,6 +41,30 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+def print_error(e: pydantic.ValidationError, config_yaml: strictyaml.YAML):
+    logger.info('Failed to parse config file')
+    for err in e.errors():
+        yaml_obj = config_yaml
+        for x in err['loc']:
+            k = None
+
+            match x:
+                case int(idx) if len(yaml_obj) > idx:
+                    k = yaml_obj[idx]
+                case str(key):
+                    k = yaml_obj.get(key)
+
+            if k is None:
+                break
+
+            yaml_obj = yaml_obj[x]
+
+        loc = ' -> '.join(str(x) for x in err['loc'])
+        msg = err['msg']
+        err_type = err['type']
+        logger.info('%s: %s @ Line: %i "%s"', err_type, msg, yaml_obj.start_line, loc)
 
 
 def worker(arg: tuple[Path, Path, Settings, int]):
@@ -100,10 +125,16 @@ def cmd_convert(args: argparse.Namespace):
     if args.config is None:
         config = Settings()
     else:
-        with args.config.open(encoding='utf-8') as f:
-            config_text = f.read()
-        config_yaml = yaml.safe_load(config_text)
-        config = Settings(**config_yaml)
+
+        config_text = args.config.read()
+        config_yaml: strictyaml.YAML = strictyaml.load(config_text)
+        try:
+            config = Settings(**config_yaml.data)
+        except pydantic.ValidationError as e:
+            print_error(e, config_yaml)
+            return
+
+        config.raw_text = config_text
 
     # check for msgs folder
     if config.msg_folder is not None and not config.msg_folder.exists():
@@ -138,10 +169,15 @@ def cmd_cut(args: argparse.Namespace):
     logger.info('cut')
 
     config_text = args.config.read()
-    config_yaml = yaml.safe_load(config_text)
-    config = CutSettings(**config_yaml)
+    config_yaml: strictyaml.YAML = strictyaml.load(config_text)
 
-    cutter(args.input, args.output, config)
+    try:
+        config = CutSettings(**config_yaml.data)
+    except pydantic.ValidationError as e:
+        print_error(e, config_yaml)
+        return
+
+    cutter(args.input, args.output_folder, config)
 
 
 def main() -> None:
@@ -164,7 +200,7 @@ def main() -> None:
 
     cutter.add_argument('input', type=Path, help='input file')
     cutter.add_argument(
-        'output',
+        'output_folder',
         type=Path,
         help='output folder, default: ./cut_out',
         default=Path('./cut_out'),
@@ -180,7 +216,7 @@ def main() -> None:
 
     convert.add_argument('input', type=Path, help='input folder')
     convert.add_argument('output', type=Path, help='output folder')
-    convert.add_argument('--config', type=Path, help='config file')
+    convert.add_argument('--config', type=argparse.FileType(), help='config file')
     convert.add_argument(
         '--overwrite',
         action='store_true',

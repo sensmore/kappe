@@ -19,7 +19,7 @@ dependencies = [
     "mcap-ros2-support>=0.3.0",
     "numpy",
     "pydantic",
-    "pyyaml",
+    "strictyaml",
     "scipy",
     "tqdm",
 ]
@@ -140,3 +140,6 @@ inline-quotes = 'single'
 [tool.ruff.flake8-annotations]
 mypy-init-return = true
 suppress-none-returning = true
+
+[tool.ruff.pep8-naming]
+classmethod-decorators = ["pydantic.validator"]
