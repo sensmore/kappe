@@ -1,8 +1,9 @@
 *.mcap
 out/
-mgsg/
+msgs/
 .vscode/
 config.yaml
+*.pro
 
 .DS_Store
 
