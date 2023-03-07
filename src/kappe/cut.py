@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from mcap.reader import make_reader
 from mcap.records import Channel, Schema
@@ -18,10 +17,10 @@ class CutSplits(BaseModel, extra=Extra.forbid):
     name: str
 
     @validator('end')
-    def validate_end(cls, v: float, values: dict[str, Any], **_kwargs: Any) -> float:
-        if v < values['start']:
+    def validate_end(cls, value, values, **kwargs):  # noqa: ANN001, ANN003, ANN201, ARG003
+        if value < values['start']:
             raise ValueError('end must be greater than start')
-        return v
+        return value
 
 
 class CutSettings(BaseModel, extra=Extra.forbid):
