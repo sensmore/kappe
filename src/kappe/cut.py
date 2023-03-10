@@ -186,6 +186,8 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
     if settings.split_on_topic is None:
         raise ValueError('split_on must be set')
 
+    output.mkdir(parents=True, exist_ok=True)
+
     with input_file.open('rb') as f:
         reader = make_reader(f)
 
