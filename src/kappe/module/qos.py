@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-import yaml
+import strictyaml
 
 
 class HistoryPolicy(IntEnum):
@@ -94,4 +94,4 @@ class Qos:
             'avoid_ros_namespace_conventions': self.avoid_ros_namespace_conventions,
         }
 
-        return yaml.safe_dump(d, sort_keys=False)
+        return strictyaml.as_document(d).as_yaml()

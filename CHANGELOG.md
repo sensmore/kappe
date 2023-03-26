@@ -1,9 +1,15 @@
 # Changelog
 
-## unreleased
+## 0.7.2
+
+- Fixed `pyyaml` import
+- Fixed cut mcap profile
+
+## 0.7.1
 
 - Cut validate input existence & duplicate outputs
 - Append `.mcap` if not present in output file
+- Create output directory if not present, for cut on topic
 
 ## 0.7.0
 

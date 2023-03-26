@@ -105,6 +105,10 @@ def process(config: Settings, input_path: Path, output_path: Path, *, overwrite:
                 continue
             tasks.append((mcap_in, mcap_out, config, idx))
 
+    if len(tasks) == 0:
+        logger.info('No files to convert')
+        return
+
     logger.info('Using %d threads', config.general.threads)
     tqdm.set_lock(RLock())  # for managing output contention
 

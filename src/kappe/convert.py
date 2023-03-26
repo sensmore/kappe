@@ -4,7 +4,7 @@ from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
+import strictyaml
 from mcap.reader import make_reader
 from mcap.records import Schema, Statistics
 from mcap.summary import Summary
@@ -47,8 +47,7 @@ def generate_qos(config: dict) -> str:
         },
         'avoid_ros_namespace_conventions': False,
     }
-
-    return yaml.safe_dump([qos_default | config], sort_keys=False)
+    return strictyaml.as_document([qos_default | config]).as_yaml()
 
 
 class Converter:
@@ -188,8 +187,8 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                 if topic in ['/tf_static']:
                     old_qos = {}
                     if 'offered_qos_profiles' in metadata:
-                        old_qos = yaml.safe_load(
-                            metadata['offered_qos_profiles'])[0]
+                        old_qos = strictyaml.load(
+                            metadata['offered_qos_profiles']).data[0]
                     new_qos = {'durability': 1}
                     metadata['offered_qos_profiles'] = generate_qos(
                         old_qos | new_qos)

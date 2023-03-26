@@ -39,7 +39,7 @@ class CutSettings(BaseModel, extra=Extra.forbid):
 
 
 class SplitWriter:
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, profile: str) -> None:
         self._schema_lookup: dict[int, int] = {}
         self._channel_lookup: dict[int, int] = {}
 
@@ -48,7 +48,7 @@ class SplitWriter:
         self.static_tf: list[bytes] | None = None
 
         self._writer = Writer(path)
-        self._writer.start()
+        self._writer.start(profile=profile)
 
     def set_static_tf(self, schema: Schema, channel: Channel, data: list[bytes]):
         self.static_tf_set = True
@@ -112,6 +112,8 @@ class SplitWriter:
 
 
 def collect_tf(reader: McapReader) -> tuple[Schema, Channel, list[bytes]]:
+    logger.info('Collecting static tf data')
+
     tf_static_msgs = []
     tf_static_schema: Schema | None = None
     tf_static_channel: Channel | None = None
@@ -156,9 +158,10 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
     with input_file.open('rb') as f:
         reader = make_reader(f)
 
+        profile = reader.get_header().profile
         for split in settings.splits:
             out = output / split.name
-            outputs.append(SplitWriter(str(out)))
+            outputs.append(SplitWriter(str(out), profile))
             first_msg.append(True)  # noqa: FBT003
 
         if settings.keep_tf_tree:
@@ -191,12 +194,13 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
     with input_file.open('rb') as f:
         reader = make_reader(f)
 
+        profile = reader.get_header().profile
         # last split time in nanoseconds
         last_split_time = 0
         debounce_ns = int(settings.split_on_topic.debounce * 1e9)
 
         counter = 0
-        writer = SplitWriter(f'{output}/{counter:05}.mcap')
+        writer = SplitWriter(f'{output}/{counter:05}.mcap', profile=profile)
 
         tf_static_schema, tf_static_channel, tf_static_msgs = None, None, None
         if settings.keep_tf_tree:
@@ -216,7 +220,7 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
 
                 writer.finish()
                 counter += 1
-                writer = SplitWriter(f'{output}/{counter:05}.mcap')
+                writer = SplitWriter(f'{output}/{counter:05}.mcap', profile=profile)
                 if tf_static_schema is not None and tf_static_channel is not None and \
                         tf_static_msgs is not None:
                     writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
