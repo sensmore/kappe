@@ -61,6 +61,7 @@ def time_offset_stamp(cfg: SettingTimeOffset, publish_time_ns: int, stamp: TimeM
     stamp.nanosec = header_nanosec
     stamp.sec = header_sec + off_sec
 
+
 def time_offset_rec(cfg: SettingTimeOffset, publish_time_ns: int, msg: Any):
     if not hasattr(msg, '__slots__'):
         return

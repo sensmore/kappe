@@ -39,10 +39,11 @@ def get_msg_def_ros(msg: str) -> tuple[str, list[str]] | None:
     return text, dependencies
 
 
-
 """
     Returns message definition and its dependencies
 """
+
+
 def get_msg_def_disk(msg_type: str, folder: Path) -> tuple[str, list[str]] | None:
     pkg_name = msg_type.split('/')[0]
     msg_name = msg_type.split('/')[-1]
@@ -54,7 +55,6 @@ def get_msg_def_disk(msg_type: str, folder: Path) -> tuple[str, list[str]] | Non
         return None
 
     msg_path = msg_path[0]
-
 
     with msg_path.open(encoding='utf-8') as msg_file:
         msg_text = msg_file.read()
@@ -81,6 +81,7 @@ def get_msg_def(msg_type: str, folder: Path | None = None) -> tuple[str, list[st
         return get_msg_def_disk(msg_type, folder)
 
     return ret
+
 
 def get_message_definition(msg_type: str, folder: Path | None = None) -> str | None:
     msg_def = get_msg_def(msg_type, folder)
