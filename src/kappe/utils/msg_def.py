@@ -15,44 +15,37 @@ except ImportError:
     get_message = None
 
 
-def get_msg_def_ros(msg: str) -> str | None:
+def get_msg_def_ros(msg: str) -> tuple[str, list[str]] | None:
     if get_message is None or get_interface_path is None:
         return None
 
-    text = ''
     fields = get_message(msg).get_fields_and_field_types()
 
+    dependencies = []
     for type_name in fields.values():
         # primitive
         if '/' not in type_name:
             continue
 
+        # builtin_interfaces are expected to be known by the parser
         if type_name.startswith('builtin_interfaces/'):
             continue
 
-        ret = get_msg_def_ros(type_name)
-        if ret is None:
-            logger.error('Failed to find definition for %s', type_name)
-            return None
-
-        text += ret
-
-    text += '========================================\n'
-    text += f'MSG: {msg}\n'
-
-    if '/msg/' not in msg:
-        split = msg.split('/')
-        msg = '/'.join([split[0], 'msg', *split[1:]])
+        dependencies.append(type_name)
 
     with Path(get_interface_path(msg)).open(encoding='utf-8') as msg_file:
-        text += msg_file.read()
+        text = msg_file.read()
 
-    return text
+    return text, dependencies
 
 
-def get_msg_def_disk(msg: str, folder: Path) -> str | None:
-    pkg_name = msg.split('/')[0]
-    msg_name = msg.split('/')[-1]
+
+"""
+    Returns message definition and its dependencies
+"""
+def get_msg_def_disk(msg_type: str, folder: Path) -> tuple[str, list[str]] | None:
+    pkg_name = msg_type.split('/')[0]
+    msg_name = msg_type.split('/')[-1]
 
     # TODO: make 'msg' optional?
     # TODO: how to handle multiple matches?
@@ -62,46 +55,60 @@ def get_msg_def_disk(msg: str, folder: Path) -> str | None:
 
     msg_path = msg_path[0]
 
-    if not msg_path.exists():
-        return None
 
-    text = ''
     with msg_path.open(encoding='utf-8') as msg_file:
         msg_text = msg_file.read()
 
-    text += f'MSG: {msg}\n'
-    text += msg_text
-    text += '\n'
-    text += '=' * 40 + '\n'
-
+    dependencies = []
     msg_def = ros2_parser.parse_message_string(pkg_name, msg_name, msg_text)
     for field in msg_def.fields:
         f_type = field.type
         if field.type.is_primitive_type():
             continue
 
+        # builtin_interfaces are expected to be known by the parser
         if f_type.pkg_name == 'builtin_interfaces':
             continue
 
-        field_text = get_msg_def_disk(f'{f_type.pkg_name}/{f_type.type}', folder)
-        if field_text is None:
-            logger.error(
-                'Failed to find definition for %s/%s',
-                f_type.pkg_name,
-                f_type.type)
-            return None
-        text += field_text
+        dependencies.append(f'{f_type.pkg_name}/{f_type.type}')
 
-    return text
+    return (msg_text, dependencies)
 
 
-def get_msg_def(msg: str, folder: Path | None = None) -> str | None:
-    new_data = None
+def get_msg_def(msg_type: str, folder: Path | None = None) -> tuple[str, list[str]] | None:
+    ret = get_msg_def_ros(msg_type)
+    if ret is None and folder is not None:
+        return get_msg_def_disk(msg_type, folder)
 
-    new_data = get_msg_def_ros(msg)
+    return ret
 
-    if new_data is None and folder is not None:
-        # use ./msgs/ to get the message definition
-        return get_msg_def_disk(msg, folder)
+def get_message_definition(msg_type: str, folder: Path | None = None) -> str | None:
+    msg_def = get_msg_def(msg_type, folder)
+    if msg_def is None:
+        return None
 
-    return new_data
+    msg_text, dependencies = msg_def
+    added_types = set()
+    while len(dependencies) > 0:
+        for dep in dependencies:
+            if dep in added_types:
+                continue
+
+            msg_def = get_msg_def(dep, folder)
+            if msg_def is None:
+                return None
+
+            dep_text, dep_dep = msg_def
+
+            msg_text += '=' * 40 + '\n'
+            msg_text += f'MSG: {dep}\n'
+            msg_text += dep_text
+            added_types.add(dep)
+            dependencies.extend(dep_dep)
+
+        # remove added types
+        for added in added_types:
+            if added in dependencies:
+                dependencies.remove(added)
+
+    return msg_text

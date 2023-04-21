@@ -20,7 +20,7 @@ from kappe.module.tf import tf_remove
 from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
 from kappe.settings import Settings
-from kappe.utils.msg_def import get_msg_def
+from kappe.utils.msg_def import get_message_definition
 from kappe.utils.types import McapROSMessage
 
 logger = logging.getLogger(__name__)
@@ -81,9 +81,7 @@ class Converter:
 
         self.mcap_header = self.reader.get_header()
         if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
-            logger.error("""msg_folder is required for ROS1 mcap!
-You can get common message definitions from:
-git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.git msgs""")
+            logger.error('msg_folder is required for ROS1 mcap! See README for more information')
 
         summ = self.reader.get_summary()
 
@@ -126,7 +124,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                 # or scheme name is mapped, try to get the schema definition
                 # from ROS or disk
 
-                new_data = get_msg_def(schema_name, self.config.msg_folder)
+                new_data = get_message_definition(schema_name, self.config.msg_folder)
 
                 if new_data is not None:
                     schema_def = new_data
@@ -145,7 +143,7 @@ git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.gi
                 if out_schema in self.schema_list:
                     continue
 
-                new_data = get_msg_def(out_schema, self.config.msg_folder)
+                new_data = get_message_definition(out_schema, self.config.msg_folder)
 
                 if new_data is None:
                     raise ValueError(
