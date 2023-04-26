@@ -1,0 +1,44 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: check-xml
+      - id: check-yaml
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.0.263"
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+
+  - repo: https://github.com/pre-commit/mirrors-autopep8
+    rev: "v2.0.2"
+    hooks:
+      - id: autopep8
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.14.8
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/crate-ci/committed
+    rev: v1.0.17
+    hooks:
+      - id: committed

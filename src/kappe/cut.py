@@ -124,9 +124,7 @@ def collect_tf(reader: McapReader) -> tuple[Schema, Channel, list[bytes]]:
         tf_static_schema = schema
         tf_static_channel = channel
 
-    if tf_static_schema is None:
-        raise ValueError('Could not find /tf_static topic in file')
-    if tf_static_channel is None:
+    if tf_static_schema is None or tf_static_channel is None:
         raise ValueError('Could not find /tf_static topic in file')
 
     return tf_static_schema, tf_static_channel, tf_static_msgs

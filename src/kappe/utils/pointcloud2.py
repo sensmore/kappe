@@ -56,7 +56,7 @@ def dtype_from_fields(fields: Iterable[PointField], point_step: int | None = Non
         # Datatype as numpy datatype
         datatype = _DATATYPES[field.datatype]
         # Name field
-        name = f'{DUMMY_FIELD_PREFIX}_{i}' if field.name == '' else field.name
+        name = f'{DUMMY_FIELD_PREFIX}_{i}' if not field.name else field.name
         # Handle fields with count > 1 by creating subfields with a suffix consisting
         # of '_' followed by the subfield counter [0 -> (count - 1)]
         assert field.count > 0, "Can't process fields with count = 0."

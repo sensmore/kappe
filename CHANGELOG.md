@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.3
+
+- Fixed schema generation
+
 ## 0.7.2
 
 - Fixed `pyyaml` import
