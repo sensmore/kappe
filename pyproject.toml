@@ -47,86 +47,20 @@ max_line_length = 100
 [tool.ruff]
 line-length = 100
 exclude = ['msgs']
-select = [
-    'F',    # Pyflakes
-    'E',    # pycodestyle
-    'W',    # pycodestyle
-    # 'C90', # mccabe
-    'I',    # isort
-    'N',    # pep8-naming
-    'D',    # pydocstyle
-    'UP',   # pyupgrade
-    'YTT',  # flake8-2020
-    'ANN',  # flake8-annotations
-    'S',    # flake8-bandit
-    'BLE',  # flake8-blind-except
-    'FBT',  # flake8-boolean-trap
-    'B',    # flake8-bugbear
-    'A',    # flake8-builtins
-    'COM',  # flake8-commas
-    'C4',   # flake8-comprehensions
-    'DTZ',  # flake8-datetimez
-    'T10',  # flake8-debugger
-    'DJ',   # flake8-django
-    'EM',   # flake8-errmsg
-    'EXE',  # flake8-executable
-    'ISC',  # flake8-implicit-str-concat
-    'ICN',  # flake8-import-conventions
-    'G',    # flake8-logging-format
-    'INP',  # flake8-no-pep420
-    'PIE',  # flake8-pie
-    'T20',  # flake8-print
-    'PYI',  # flake8-pyi
-    'PT',   # flake8-pytest-style
-    'Q',    # flake8-quotes
-    'RSE',  # flake8-raise
-    'RET',  # flake8-return
-    'SLF',  # flake8-self
-    'SIM',  # flake8-simplify
-    'TID',  # flake8-tidy-imports
-    # 'TCH',  # flake8-type-checking
-    'ARG',  # flake8-unused-arguments
-    'PTH',  # flake8-use-pathlib
-    'ERA',  # eradicate
-    'PD',   # pandas-vet
-    'PGH',  # pygrep-hooks
-    'PLC',  # Pylint
-    'PLE',  # Pylint
-    'PLR',  # Pylint
-    'PLW',  # Pylint
-    'TRY',  # tryceratops
-    'NPY',  # NumPy-specific rules
-    'RUF',  # Ruff-specific rules
-]
+select = ['ALL']
 
 ignore = [
-    'D100', # PublicModule
-    'D101', # PublicClass
-    'D102', # PublicMethod
-    'D103', # PublicFunction
-    'D104', # PublicPackage
-    'D105', # MagicMethod
-    'D106', # PublicNestedClass
-    'D107', # PublicInit
-    'D203', # OneBlankLineBeforeClass
-    'D212', # MultiLineSummaryFirstLine
-    'D404', # NoThisPrefix
-
-    'ANN101', # MissingTypeFunctionArgument
-    'ANN401', # dynamically-typed-expression
-
-    'EM101', # raw-string-in-exception
-    'EM102', # f-string-in-exception
-
-    'PLR0912', # too-many-branches
-    'PLR0915', # too-many-statements
-    'PLR2004', # MagicValueComparison
-
-    'S101', # AssertUsed
-
-    'TRY003', # raise-vanilla-args
-
-    'N999', # invalid-module-name TEMPORARY
+    'ANN101',  # missing-type-self
+    'ANN401',  # dynamically-typed-expression
+    'C901',    # complex-structure
+    'D',       # pydocstyle
+    'EM101',   # raw-string-in-exception
+    'EM102',   # f-string-in-exception
+    'PLR2004', # MagicValueComparisons
+    'S101',    # AssertUsed
+    'TCH',     # flake8-type-checking
+    'TCH',     # flake8-type-checking
+    'TRY003',  # raise-vanilla-args
 ]
 
 src = ['src']
@@ -135,7 +69,6 @@ target-version = 'py310'
 
 [tool.ruff.flake8-quotes]
 inline-quotes = 'single'
-
 
 [tool.ruff.flake8-annotations]
 mypy-init-return = true
