@@ -119,7 +119,10 @@ point_cloud:
 point_cloud:
   /sensor/points:
     rotation:
-       euler_deg: '[180, 0, 0]'
+      euler_deg:
+        - 180
+        - 0
+        - 0
 ```
 
 ### Rename PointCloud2 field name
@@ -165,5 +168,8 @@ tf_static:
         y: 0
         z: 0.1
       rotation:
-        euler_deg: [0, 90, 0]
+        euler_deg:
+          - 0
+          - 90
+          - 0
 ```
