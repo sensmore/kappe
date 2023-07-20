@@ -5,23 +5,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import strictyaml
-from mcap.reader import make_reader
+from mcap.reader import DecodedMessageTuple, make_reader
 from mcap.records import Schema, Statistics
 from mcap.summary import Summary
 from mcap.well_known import Profile, SchemaEncoding
-from mcap_ros1.reader import read_ros1_messages
-from mcap_ros2.reader import read_ros2_messages
+from mcap_ros1.decoder import DecoderFactory as Ros1DecoderFactory
+from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
 from mcap_ros2.writer import Writer as McapWriter
 from tqdm import tqdm
 
 from kappe import __version__
 from kappe.module.pointcloud import point_cloud
-from kappe.module.tf import tf_remove
+from kappe.module.tf import tf_remove, tf_static_insert
 from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
 from kappe.settings import Settings
 from kappe.utils.msg_def import get_message_definition
-from kappe.utils.types import McapROSMessage
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +58,8 @@ class Converter:
         self.raw_config = raw_config
 
         self.drop_msg_count: dict[str, int] = {}
+
+        self.tf_inserted = False
 
         # maps input topic to list of plugins
         self.plugin_conv: dict[str, list[tuple[ConverterPlugin, str]]] = {}
@@ -221,22 +222,29 @@ class Converter:
 
         return filtered_channels
 
-    def read_ros_messaged(self,
-                          topics: Iterable[str] | None = None,
-                          start_time: datetime | None = None,
-                          end_time: datetime | None = None,
-                          ) -> Iterator[McapROSMessage]:
+    def read_ros_messaged(
+        self,
+        topics: Iterable[str] | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> Iterator[DecodedMessageTuple]:
         self.f_reader.seek(0)
         if self.mcap_header.profile == Profile.ROS1:
-            msg_iter = read_ros1_messages(
-                self.f_reader,
+            self.reader = make_reader(
+                self.f_reader, decoder_factories=[Ros1DecoderFactory()],
+            )
+
+            msg_iter = self.reader.iter_decoded_messages(
                 topics=topics,
                 start_time=start_time,
                 end_time=end_time,
             )
         elif self.mcap_header.profile == Profile.ROS2:
-            msg_iter = read_ros2_messages(
-                self.f_reader,
+            self.reader = make_reader(
+                self.f_reader, decoder_factories=[Ros2DecoderFactory()],
+            )
+
+            msg_iter = self.reader.iter_decoded_messages(
                 topics=topics,
                 start_time=start_time,
                 end_time=end_time,
@@ -246,10 +254,10 @@ class Converter:
 
         return msg_iter
 
-    def process_message(self, msg: McapROSMessage):
-        ros_msg = msg.ros_msg
-        schema_name = msg.schema.name
-        topic = msg.channel.topic
+    def process_message(self, msg: DecodedMessageTuple):
+        schema, channel, message, ros_msg = msg
+        schema_name = schema.name
+        topic = channel.topic
 
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
@@ -260,9 +268,9 @@ class Converter:
                     topic=output_topic,
                     schema=self.schema_list[conv.output_schema],
                     message=conv_msg,
-                    log_time=msg.log_time_ns,
-                    publish_time=msg.publish_time_ns,
-                    sequence=msg.sequence_count,
+                    log_time=message.log_time,
+                    publish_time=message.publish_time,
+                    sequence=message.sequence,
                 )
 
         # late remove topics which are required by a plugin
@@ -279,7 +287,7 @@ class Converter:
                 return
 
         if self.mcap_header.profile == Profile.ROS1:
-            fix_ros1_time(msg.ros_msg)
+            fix_ros1_time(ros_msg)
 
         # drop messages that are not in the schema list
         msg_schema = self.schema_list.get(schema_name)
@@ -288,6 +296,9 @@ class Converter:
 
         if topic in ['/tf', '/tf_static']:
             tf_remove(self.config.tf_static, msg)
+
+        if topic in ['/tf_static'] and not self.tf_inserted:
+            self.tf_inserted = tf_static_insert(self.config.tf_static, msg)
 
         if topic in self.config.time_offset:
             time_offset(self.config.time_offset[topic], msg)
@@ -302,9 +313,9 @@ class Converter:
             topic=self.config.topic.mapping.get(topic, topic),
             schema=self.schema_list[schema_name],
             message=ros_msg,
-            log_time=msg.log_time_ns,
-            publish_time=msg.publish_time_ns,
-            sequence=msg.sequence_count,
+            log_time=message.log_time,
+            publish_time=message.publish_time,
+            sequence=message.sequence,
         )
 
     def process_file(self, tqdm_idx: int = 0):
@@ -387,7 +398,8 @@ class Converter:
             unit='secs',
         ) as pbar:
             for msg in msg_iter:
-                pbar.update((msg.log_time_ns // 1e6 - start_time) - pbar.n)
+                message = msg[2]
+                pbar.update((message.log_time // 1e6 - start_time) - pbar.n)
                 self.process_message(msg)
 
     def finish(self):

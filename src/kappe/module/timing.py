@@ -2,11 +2,10 @@ import logging
 from types import SimpleNamespace
 from typing import Any
 
+from mcap.reader import DecodedMessageTuple
 from mcap_ros1._vendor.genpy.rostime import Duration as ROS1Duration
 from mcap_ros1._vendor.genpy.rostime import Time as ROS1Time
 from pydantic import BaseModel, Extra
-
-from kappe.utils.types import McapROSMessage
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +78,12 @@ def time_offset_rec(cfg: SettingTimeOffset, publish_time_ns: int, msg: Any):
             time_offset_rec(cfg, publish_time_ns, attr)
 
 
-def time_offset(cfg: SettingTimeOffset, msg: McapROSMessage):
+def time_offset(cfg: SettingTimeOffset, msg: DecodedMessageTuple):
     """Apply time offset to the message."""
+    schema, channel, message, ros_msg = msg
     if not hasattr(msg, '__slots__'):
         return
-    time_offset_rec(cfg, msg.publish_time_ns, msg.ros_msg)
+    time_offset_rec(cfg, message.publish_time_ns, ros_msg)
 
 
 def fix_ros1_time(msg: Any):

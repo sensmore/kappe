@@ -1,10 +1,10 @@
 import numpy as np
+from mcap.reader import DecodedMessageTuple
 from pydantic import BaseModel, Extra
 from scipy.spatial.transform import Rotation
 
 from kappe.utils.pointcloud2 import create_cloud, read_points
 from kappe.utils.settings import SettingRotation
-from kappe.utils.types import McapROSMessage
 
 
 class SettingPointCloud(BaseModel, extra=Extra.forbid):
@@ -21,15 +21,17 @@ class SettingPointCloud(BaseModel, extra=Extra.forbid):
     field_mapping: dict[str, str] | None
 
 
-def point_cloud(cfg: SettingPointCloud, msg: McapROSMessage):
+def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple):
+    schema, channel, message, ros_msg = msg
+
     if cfg.field_mapping is not None:
-        for pc_field in msg.ros_msg.fields:
+        for pc_field in ros_msg.fields:
             pc_field.name = cfg.field_mapping.get(
                 pc_field.name, pc_field.name)
 
-    fields = [x.name for x in msg.ros_msg.fields]
+    fields = [x.name for x in ros_msg.fields]
     if 'x' in fields and 'y' in fields and 'z' in fields:
-        cloud = np.array(read_points(msg.ros_msg))
+        cloud = np.array(read_points(ros_msg))
         org_len = len(cloud)
 
         if cfg.remove_zero:
@@ -50,16 +52,16 @@ def point_cloud(cfg: SettingPointCloud, msg: McapROSMessage):
 
         if quat is not None or len(cloud) != org_len:
             msg_cloud = create_cloud(
-                msg.ros_msg.header,
-                msg.ros_msg.fields,
+                ros_msg.header,
+                ros_msg.fields,
                 cloud,
-                msg.ros_msg.point_step,
+                ros_msg.point_step,
             )
-            msg.ros_msg.data = msg_cloud['data']
+            ros_msg.data = msg_cloud['data']
 
-            msg.ros_msg.height = msg_cloud['height']
-            msg.ros_msg.width = msg_cloud['width']
-            msg.ros_msg.is_dense = msg_cloud['is_dense']
-            msg.ros_msg.is_bigendian = msg_cloud['is_bigendian']
-            msg.ros_msg.point_step = msg_cloud['point_step']
-            msg.ros_msg.row_step = msg_cloud['row_step']
+            ros_msg.height = msg_cloud['height']
+            ros_msg.width = msg_cloud['width']
+            ros_msg.is_dense = msg_cloud['is_dense']
+            ros_msg.is_bigendian = msg_cloud['is_bigendian']
+            ros_msg.point_step = msg_cloud['point_step']
+            ros_msg.row_step = msg_cloud['row_step']
