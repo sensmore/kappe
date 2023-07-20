@@ -15,13 +15,14 @@ classifiers = [
 
 dependencies = [
     "mcap>=0.3.0",
-    "mcap-ros1-support>=0.6.0", # maybe make optional
+    "mcap-ros1-support>=0.6.0",
     "mcap-ros2-support>=0.3.0",
     "numpy",
-    "pydantic",
+    "pydantic>=1.0.0,<=2.0.0",
     "strictyaml",
     "scipy",
     "tqdm",
+    "pyyaml>=6.0.1",
 ]
 
 dynamic = ["version"]

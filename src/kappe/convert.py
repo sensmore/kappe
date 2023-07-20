@@ -226,16 +226,17 @@ class Converter:
                           start_time: datetime | None = None,
                           end_time: datetime | None = None,
                           ) -> Iterator[McapROSMessage]:
+        self.f_reader.seek(0)
         if self.mcap_header.profile == Profile.ROS1:
             msg_iter = read_ros1_messages(
-                self.reader,
+                self.f_reader,
                 topics=topics,
                 start_time=start_time,
                 end_time=end_time,
             )
         elif self.mcap_header.profile == Profile.ROS2:
             msg_iter = read_ros2_messages(
-                self.reader,
+                self.f_reader,
                 topics=topics,
                 start_time=start_time,
                 end_time=end_time,
@@ -253,8 +254,7 @@ class Converter:
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
-            conv_msg = conv.convert(ros_msg)
-            if conv_msg is not None:
+            if conv_msg := conv.convert(ros_msg):
                 # TODO: pass this to process_message?
                 self.writer.write_message(
                     topic=output_topic,
