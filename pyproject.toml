@@ -18,7 +18,7 @@ dependencies = [
     "mcap-ros1-support>=0.6.0",
     "mcap-ros2-support>=0.3.0",
     "numpy",
-    "pydantic>=1.0.0,<=2.0.0",
+    "pydantic>=1.0.0,<2.0.0",
     "strictyaml",
     "scipy",
     "tqdm",
