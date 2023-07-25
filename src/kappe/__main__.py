@@ -1,4 +1,4 @@
-from kappe import kappe
+from kappe import cli
 
 if __name__ == '__main__':
-    kappe.main()
+    cli.main()
