@@ -218,7 +218,7 @@ def main() -> None:
     convert = sub.add_parser('convert')
     convert.set_defaults(func=cmd_convert)
 
-    convert.add_argument('input', type=Path, help='input folder')
+    convert.add_argument('input', type=Path, help='input folder or file')
     convert.add_argument('output', type=Path, help='output folder')
     convert.add_argument('--config', type=argparse.FileType(), help='config file')
     convert.add_argument(

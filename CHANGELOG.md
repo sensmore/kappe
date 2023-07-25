@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.2
+
+- Fixed static insert
+- Migrated to DecoderFactory
+
+## 0.8.1
+
+- Pined `pydantic` to `<2.0.0`
+
+## 0.8.0
+
+- Fixed dependencies & mcap decoder
+
 ## 0.7.3
 
 - Fixed schema generation

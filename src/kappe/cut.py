@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class CutSplits(BaseModel, extra=Extra.forbid):
-    # TODO: validate that start is >= file start
-    # TODO: validate that end is <= file end
     start: float
     end: float
     name: str
