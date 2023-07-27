@@ -418,7 +418,7 @@ class Converter:
             data={
                 'input_path': str(self.input_path),
                 'output_path': str(self.output_path),
-                'data': datetime.now(tz=timezone.utc).isoformat(),
+                'date': datetime.now(tz=timezone.utc).isoformat(),
                 'version': __version__,
             },
         )
