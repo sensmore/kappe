@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.4
+
+- Fixed typo in convert metadata
+
+## 0.8.3
+
+- Added License
+
 ## 0.8.2
 
 - Fixed static insert

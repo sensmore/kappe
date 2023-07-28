@@ -24,6 +24,12 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+      contents: read
+
     steps:
       - uses: actions/checkout@v3
 
@@ -38,7 +44,5 @@ jobs:
       - name: Building
         run: python3 -m build
 
-      - name: Publish package
+      - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}

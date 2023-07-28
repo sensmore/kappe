@@ -146,7 +146,6 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
     output.mkdir(parents=True, exist_ok=True)
 
     outputs: list[SplitWriter] = []
-    first_msg: list[bool] = []
 
     min_start_time = int(min([split.start for split in settings.splits]) * 1e9)
     max_end_time = int(max([split.end for split in settings.splits]) * 1e9)
@@ -158,7 +157,6 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
         for split in settings.splits:
             out = output / split.name
             outputs.append(SplitWriter(str(out), profile))
-            first_msg.append(True)  # noqa: FBT003
 
         if settings.keep_tf_tree:
             tf_static_schema, tf_static_channel, tf_static_msgs = collect_tf(reader)
@@ -204,7 +202,6 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
             writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
         # TODO: check if topic exists
-
         for schema, channel, message in tqdm(reader.iter_messages()):
             if schema is None:
                 continue

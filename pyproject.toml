@@ -26,6 +26,9 @@ dependencies = [
 
 dynamic = ["version"]
 
+[project.urls]
+repository = "https://github.com/sensmore/kappe"
+
 [project.scripts]
 kappe = "kappe.cli:main"
 
