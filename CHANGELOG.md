@@ -1,10 +1,15 @@
 # Changelog
 
-## 0.8.4
+## 0.8.6
+
+- `start_time` & `end_time`
+- Correct display processed mcap seconds per seconds
+
+## 0.8.5
 
 - Fixed typo in convert metadata
 
-## 0.8.3
+## 0.8.4
 
 - Added License
 

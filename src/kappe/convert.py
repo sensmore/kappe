@@ -225,34 +225,34 @@ class Converter:
     def read_ros_messaged(
         self,
         topics: Iterable[str] | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        start_time: float | None = None,
+        end_time: float | None = None,
     ) -> Iterator[DecodedMessageTuple]:
+        """Read messages from the mcap file.
+
+        Args:
+            topics: List of topics to read. If None, all topics are read.
+            start_time: Start time in seconds. If None, start at the beginning.
+            end_time: End time in seconds. If None, read until the end.
+        """
         self.f_reader.seek(0)
+        decoder = None
         if self.mcap_header.profile == Profile.ROS1:
-            self.reader = make_reader(
-                self.f_reader, decoder_factories=[Ros1DecoderFactory()],
-            )
-
-            msg_iter = self.reader.iter_decoded_messages(
-                topics=topics,
-                start_time=start_time,
-                end_time=end_time,
-            )
+            decoder = Ros1DecoderFactory()
         elif self.mcap_header.profile == Profile.ROS2:
-            self.reader = make_reader(
-                self.f_reader, decoder_factories=[Ros2DecoderFactory()],
-            )
-
-            msg_iter = self.reader.iter_decoded_messages(
-                topics=topics,
-                start_time=start_time,
-                end_time=end_time,
-            )
+            decoder = Ros2DecoderFactory()
         else:
-            raise ValueError(f'Unsupported profile {self.mcap_header.profile}')
+            raise ValueError(f'Unsupported profile "{self.mcap_header.profile}"')
 
-        return msg_iter
+        self.reader = make_reader(
+            self.f_reader, decoder_factories=[decoder],
+        )
+
+        return self.reader.iter_decoded_messages(
+            topics=topics,
+            start_time=int(start_time * 1e9) if start_time else None,
+            end_time=int(end_time * 1e9) if end_time else None,
+        )
 
     def process_message(self, msg: DecodedMessageTuple):
         schema, channel, message, ros_msg = msg
@@ -322,11 +322,11 @@ class Converter:
 
         start_time = self.statistics.message_start_time / 1e9
         if self.config.time_start is not None:
-            start_time = max(start_time, self.config.time_start.timestamp())
+            start_time = max(start_time, self.config.time_start)
 
         end_time = self.statistics.message_end_time / 1e9
         if self.config.time_end is not None:
-            end_time = min(end_time, self.config.time_end.timestamp())
+            end_time = min(end_time, self.config.time_end)
 
         # TODO: make better!
         if self.config.keep_all_static_tf:
@@ -383,11 +383,12 @@ class Converter:
         if msg_iter is None:
             raise ValueError('msg_iter is None')
 
-        logger.info('Topics: %d, filtered topics: %d', len(
-            self.summary.channels), len(filtered_channels))
+        logger.info(
+            'Topics: %d, filtered topics: %d',
+            len(self.summary.channels),
+            len(filtered_channels),
+        )
         logger.debug('Filtered topics: %s', filtered_channels)
-        start_time = int(start_time * 1e3)  # convert to ms
-        end_time = int(end_time * 1e3)  # convert to ms
 
         duration = end_time - start_time
 
@@ -396,10 +397,11 @@ class Converter:
             position=tqdm_idx,
             desc=f'{self.input_path.name}',
             unit='secs',
+            bar_format='{l_bar}{bar}| {n:.02f}/{total:.02f} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',  # noqa: E501
         ) as pbar:
             for msg in msg_iter:
-                message = msg[2]
-                pbar.update((message.log_time // 1e6 - start_time) - pbar.n)
+                message = msg.message
+                pbar.update((message.log_time / 1e9 - start_time) - pbar.n)
                 self.process_message(msg)
 
     def finish(self):

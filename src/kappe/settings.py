@@ -1,5 +1,4 @@
 
-from datetime import datetime
 from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any
@@ -93,8 +92,8 @@ class Settings(BaseModel, extra=Extra.forbid):
     time_offset: dict[str, SettingTimeOffset] = {}
     plugins: list[SettingPlugin] = []
 
-    time_start: datetime | None = None
-    time_end: datetime | None = None
+    time_start: float | None = None
+    time_end: float | None = None
 
     keep_all_static_tf: bool = False
 

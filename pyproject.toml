@@ -1,7 +1,7 @@
 [project]
 name = "kappe"
 authors = [{ name = "Marko Bausch" }]
-description = "Converts ROS MCAPs"
+description = "Kappe is an efficient data migration tool designed to seamlessly convert and split MCAP files."
 readme = "README.md"
 requires-python = ">=3.10"
 
