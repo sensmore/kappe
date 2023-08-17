@@ -1,7 +1,21 @@
 name: Lint
 
 on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Jobs'
+        required: true
+        default: 'lint'
+        type: choice
+        options:
+          - lint
+          - build
   push:
+    branches:
+      - master
+  release:
+    types: [published]
 
 jobs:
   lint:
@@ -19,7 +33,7 @@ jobs:
         id: pre_commit
 
   build:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'release' || github.event.inputs.job == 'build'
     needs: lint
 
     runs-on: ubuntu-latest
