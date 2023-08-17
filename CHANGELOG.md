@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.7
+
+- Fallback to ROS2 if no profile is found, in mcap
+
 ## 0.8.6
 
 - `start_time` & `end_time`

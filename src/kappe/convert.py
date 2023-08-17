@@ -1,5 +1,6 @@
 import logging
 import time
+import warnings
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
 from pathlib import Path
@@ -236,13 +237,16 @@ class Converter:
             end_time: End time in seconds. If None, read until the end.
         """
         self.f_reader.seek(0)
-        decoder = None
+        decoder = Ros2DecoderFactory()
         if self.mcap_header.profile == Profile.ROS1:
             decoder = Ros1DecoderFactory()
-        elif self.mcap_header.profile == Profile.ROS2:
-            decoder = Ros2DecoderFactory()
-        else:
-            raise ValueError(f'Unsupported profile "{self.mcap_header.profile}"')
+        elif self.mcap_header.profile != Profile.ROS2:
+            warnings.warn(
+                f'Unsupported profile: {self.mcap_header.profile}, '
+                'trying to read as ROS2',
+                RuntimeWarning,
+                stacklevel=1,
+            )
 
         self.reader = make_reader(
             self.f_reader, decoder_factories=[decoder],
@@ -326,7 +330,10 @@ class Converter:
 
         end_time = self.statistics.message_end_time / 1e9
         if self.config.time_end is not None:
-            end_time = min(end_time, self.config.time_end)
+            conf_end_time = self.config.time_end
+            if conf_end_time < 100000000:
+                conf_end_time = float(start_time + conf_end_time)
+            end_time = min(end_time, conf_end_time)
 
         # TODO: make better!
         if self.config.keep_all_static_tf:
@@ -378,8 +385,8 @@ class Converter:
 
         msg_iter = self.read_ros_messaged(
             topics=filtered_channels,
-            start_time=self.config.time_start,
-            end_time=self.config.time_end)
+            start_time=start_time,
+            end_time=end_time)
         if msg_iter is None:
             raise ValueError('msg_iter is None')
 
