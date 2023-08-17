@@ -1,6 +1,28 @@
 
+import math
+
 from pydantic import BaseModel, Extra
-from scipy.spatial.transform import Rotation
+
+
+def euler_to_quaternion(rpy: tuple[float, float, float]) -> tuple[float, float, float, float]:
+
+    roll = math.radians(rpy[0])
+    pitch = math.radians(rpy[1])
+    yaw = math.radians(rpy[2])
+
+    cy = math.cos(yaw * 0.5)
+    sy = math.sin(yaw * 0.5)
+    cr = math.cos(roll * 0.5)
+    sr = math.sin(roll * 0.5)
+    cp = math.cos(pitch * 0.5)
+    sp = math.sin(pitch * 0.5)
+
+    w = cy * cr * cp + sy * sr * sp
+    x = cy * sr * cp + sy * cr * sp
+    y = cy * cr * sp - sy * sr * cp
+    z = cr * cp * sy + cy * sr * sp
+
+    return (x, y, z, w)
 
 
 class SettingRotation(BaseModel, extra=Extra.forbid):
@@ -21,8 +43,7 @@ class SettingRotation(BaseModel, extra=Extra.forbid):
             return self.quaternion
 
         if self.euler_deg:
-            return Rotation.from_euler(
-                'xzy', self.euler_deg, degrees=True).as_quat()
+            return euler_to_quaternion(self.euler_deg)
 
         return None
 

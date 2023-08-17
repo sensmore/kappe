@@ -19,7 +19,6 @@ dependencies = [
     "numpy",
     "pydantic>=1.0.0,<2.0.0",
     "strictyaml",
-    "scipy",
     "tqdm",
     "pyyaml>=6.0.1",
 ]
