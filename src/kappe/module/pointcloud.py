@@ -22,7 +22,7 @@ class SettingPointCloud(BaseModel, extra=Extra.forbid):
 
 
 def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple):
-    schema, channel, message, ros_msg = msg
+    ros_msg = msg.decoded_message
 
     if cfg.field_mapping is not None:
         for pc_field in ros_msg.fields:
