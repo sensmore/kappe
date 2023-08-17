@@ -31,6 +31,7 @@ jobs:
         run: python3 -m pip install --upgrade hatch
 
       - name: Bump, commit, tag and push
+        id: bump
         run: |
           git config --global user.name 'autobump'
           git config --global user.email 'autobump'
@@ -42,11 +43,12 @@ jobs:
           git tag "v$NEW_VERSION"
           git push
           git push --tags
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          name: Release $NEW_VERSION
-          tag: v$NEW_VERSION
+          name: v${{ steps.bump.outputs.NEW_VERSION }}
+          tag: v${{ steps.bump.outputs.NEW_VERSION }}
           draft: true
+          generateReleaseNotes: true
