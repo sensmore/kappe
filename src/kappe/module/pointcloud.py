@@ -18,7 +18,7 @@ class SettingPointCloud(BaseModel, extra=Extra.forbid):
 
     remove_zero: bool = False
     rotation: SettingRotation = SettingRotation()
-    field_mapping: dict[str, str] | None
+    field_mapping: dict[str, str] | None = None
 
 
 def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple):

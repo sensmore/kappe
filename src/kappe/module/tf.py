@@ -19,7 +19,7 @@ class SettingTFInsert(BaseModel, extra=Extra.forbid):
 
     frame_id: str
     child_frame_id: str
-    translation: SettingTranslation | None
+    translation: SettingTranslation | None = None
     rotation: SettingRotation = SettingRotation()
 
 

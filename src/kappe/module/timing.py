@@ -32,7 +32,7 @@ class SettingTimeOffset(BaseModel, extra=Extra.forbid):
 
     sec: int = 0
     nanosec: int = 0
-    pub_time: bool | None
+    pub_time: bool | None = None
 
 
 def time_offset_stamp(cfg: SettingTimeOffset, publish_time_ns: int, stamp: TimeMsg):
