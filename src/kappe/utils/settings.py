@@ -22,7 +22,7 @@ class SettingRotation(BaseModel, extra=Extra.forbid):
 
         if self.euler_deg:
             return Rotation.from_euler(
-                'xyz', self.euler_deg, degrees=True).as_quat()
+                'xzy', self.euler_deg, degrees=True).as_quat()
 
         return None
 
