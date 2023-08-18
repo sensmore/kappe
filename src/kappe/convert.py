@@ -385,8 +385,9 @@ class Converter:
 
         msg_iter = self.read_ros_messaged(
             topics=filtered_channels,
-            start_time=start_time,
-            end_time=end_time)
+            start_time=start_time if self.config.time_start else None,
+            end_time=end_time if self.config.time_end else None,
+        )
         if msg_iter is None:
             raise ValueError('msg_iter is None')
 
