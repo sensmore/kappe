@@ -19,7 +19,9 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
     - [Topic](#topic)
       - [Rename a topic](#rename-a-topic)
       - [Remove a topic](#remove-a-topic)
+      - [Update the ROS header time](#update-the-ros-header-time)
       - [Change ROS Timestamp to publish time](#change-ros-timestamp-to-publish-time)
+      - [Change MCAP pub/log time from ROS header](#change-mcap-publog-time-from-ros-header)
       - [Add a time offset to ROS Timestamp](#add-a-time-offset-to-ros-timestamp)
     - [Pointcloud](#pointcloud)
       - [Remove zero points from PointCloud2](#remove-zero-points-from-pointcloud2)
@@ -91,6 +93,17 @@ topic:
     - /points
 ```
 
+#### Update the ROS header time
+
+Adds 8 second and 300 nanosec to the ROS header.
+
+```yaml
+time_offset:
+  /sensor/points:
+    sec: 8
+    nanosec: 300
+```
+
 #### Change ROS Timestamp to publish time
 
 Change the time of the ROS Timestamp to the time the message was published.
@@ -99,6 +112,19 @@ Change the time of the ROS Timestamp to the time the message was published.
 time_offset:
   /sensor/points:
     pub_time: True
+```
+
+#### Change MCAP pub/log time from ROS header
+
+Update the log/pub time from the ROS header.
+If `pub_time` is set, pub time will be used as source.
+If `sec` and/or `nanosec` is set, the offset is used.
+
+```yaml
+time_offset:
+  /sensor/points:
+    update_publish_time: True
+    update_log_time: True
 ```
 
 #### Add a time offset to ROS Timestamp
