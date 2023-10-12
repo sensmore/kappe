@@ -4,7 +4,7 @@ default_install_hook_types:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -23,22 +23,22 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.0.265"
+    rev: "v0.0.292"
     hooks:
       - id: ruff
         args: ["--fix"]
 
   - repo: https://github.com/pre-commit/mirrors-autopep8
-    rev: "v2.0.2"
+    rev: "v2.0.4"
     hooks:
       - id: autopep8
 
   - repo: https://github.com/crate-ci/typos
-    rev: v1.14.9
+    rev: v1.16.19
     hooks:
       - id: typos
 
   - repo: https://github.com/crate-ci/committed
-    rev: v1.0.17
+    rev: v1.0.20
     hooks:
       - id: committed
