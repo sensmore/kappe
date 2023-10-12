@@ -17,11 +17,12 @@ dependencies = [
     "mcap-ros1-support>=0.6.0",
     "mcap-ros2-support>=0.3.0",
     "numpy",
-    "pydantic>=1.0.0,<2.0.0",
+    "pydantic>=2.4.2",
     "strictyaml",
     "tqdm",
     "pyyaml>=6.0.1",
     "scipy>=1.11.1",
+    "jsonargparse[signatures]>=4.25.0",
 ]
 
 dynamic = ["version"]
@@ -70,6 +71,8 @@ ignore = [
     'TCH',     # flake8-type-checking
     'TCH',     # flake8-type-checking
     'TRY003',  # raise-vanilla-args
+    'TD',
+    'FIX002',
 ]
 
 src = ['src']

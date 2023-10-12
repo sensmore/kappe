@@ -1,13 +1,13 @@
 import numpy as np
 from mcap.reader import DecodedMessageTuple
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 from scipy.spatial.transform import Rotation
 
 from kappe.utils.pointcloud2 import create_cloud, read_points
 from kappe.utils.settings import SettingRotation
 
 
-class SettingPointCloud(BaseModel, extra=Extra.forbid):
+class SettingPointCloud(BaseModel):
     """
     Point cloud settings.
 

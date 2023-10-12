@@ -4,25 +4,25 @@ from pathlib import Path
 from mcap.reader import McapReader, make_reader
 from mcap.records import Channel, Message, Schema
 from mcap.writer import Writer
-from pydantic import BaseModel, Extra, Field, validator
+from pydantic import BaseModel, Field, model_validator
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
 
-class CutSplits(BaseModel, extra=Extra.forbid):
+class CutSplits(BaseModel):
     start: float
     end: float
     name: str
 
-    @validator('end')
-    def validate_end(cls, value, values, **kwargs):  # noqa: ANN001, ANN003, ANN201, ARG003
-        if value < values['start']:
-            raise ValueError('end must be greater than start')
-        return value
+    @model_validator(mode='after')
+    def validate(self) -> 'CutSplits':
+        if self.end < self.start:
+            raise ValueError('end must be grater than start')
+        return self
 
 
-class CutSplitOn(BaseModel, extra=Extra.forbid):
+class CutSplitOn(BaseModel):
     topic: str
     debounce: float = Field(
         description='Number of seconds to wait before splitting on the same topic',
@@ -30,7 +30,7 @@ class CutSplitOn(BaseModel, extra=Extra.forbid):
     )
 
 
-class CutSettings(BaseModel, extra=Extra.forbid):
+class CutSettings(BaseModel):
     keep_tf_tree: bool = False
     splits: list[CutSplits] | None = None
     split_on_topic: CutSplitOn | None = None

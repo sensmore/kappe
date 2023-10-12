@@ -6,7 +6,7 @@ from mcap.reader import DecodedMessageTuple
 from mcap.records import Message
 from mcap_ros1._vendor.genpy.rostime import Duration as ROS1Duration
 from mcap_ros1._vendor.genpy.rostime import Time as ROS1Time
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ TimeMsg = type(
 )
 
 
-class SettingTimeOffset(BaseModel, extra=Extra.forbid):
+class SettingTimeOffset(BaseModel):
     """
     Time offset settings.
 

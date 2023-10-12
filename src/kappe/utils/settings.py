@@ -1,7 +1,7 @@
 
 import math
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 
 def euler_to_quaternion(rpy: tuple[float, float, float]) -> tuple[float, float, float, float]:
@@ -25,7 +25,7 @@ def euler_to_quaternion(rpy: tuple[float, float, float]) -> tuple[float, float, 
     return (x, y, z, w)
 
 
-class SettingRotation(BaseModel, extra=Extra.forbid):
+class SettingRotation(BaseModel):
     """
     Rotation settings.
 
@@ -38,7 +38,7 @@ class SettingRotation(BaseModel, extra=Extra.forbid):
     quaternion: tuple[float, float, float, float] | None = None
     euler_deg: tuple[float, float, float] | None = None
 
-    def to_quaternion(self) -> None | list[float]:
+    def to_quaternion(self) -> None | tuple[float, ...]:
         if self.quaternion:
             return self.quaternion
 
@@ -48,7 +48,7 @@ class SettingRotation(BaseModel, extra=Extra.forbid):
         return None
 
 
-class SettingTranslation(BaseModel, extra=Extra.forbid):
+class SettingTranslation(BaseModel):
     """
     Translation settings.
 

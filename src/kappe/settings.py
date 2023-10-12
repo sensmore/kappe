@@ -3,14 +3,14 @@ from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 from kappe.module.pointcloud import SettingPointCloud
 from kappe.module.tf import SettingTF
 from kappe.module.timing import SettingTimeOffset
 
 
-class SettingGeneral(BaseModel, extra=Extra.forbid):
+class SettingGeneral(BaseModel):
     """
     General settings.
 
@@ -20,7 +20,7 @@ class SettingGeneral(BaseModel, extra=Extra.forbid):
     threads: int = cpu_count()
 
 
-class SettingTopic(BaseModel, extra=Extra.forbid):
+class SettingTopic(BaseModel):
     """
     Topic settings.
 
@@ -34,7 +34,7 @@ class SettingTopic(BaseModel, extra=Extra.forbid):
     drop: dict[str, int] = {}
 
 
-class SettingSchema(BaseModel, extra=Extra.forbid):
+class SettingSchema(BaseModel):
     """
     Schema settings.
 
@@ -46,7 +46,7 @@ class SettingSchema(BaseModel, extra=Extra.forbid):
     mapping: dict[str, str] = {}
 
 
-class SettingPlugin(BaseModel, extra=Extra.forbid):
+class SettingPlugin(BaseModel):
     """
     Plugin settings.
 
@@ -62,7 +62,7 @@ class SettingPlugin(BaseModel, extra=Extra.forbid):
     settings: dict[str, Any] = {}
 
 
-class Settings(BaseModel, extra=Extra.forbid):
+class Settings(BaseModel):
     """
     Settings.
 

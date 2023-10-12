@@ -1,13 +1,13 @@
 import copy
 
 from mcap.reader import DecodedMessageTuple
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 from kappe.utils.settings import SettingRotation, SettingTranslation
 from kappe.utils.types import ClassDict
 
 
-class SettingTFInsert(BaseModel, extra=Extra.forbid):
+class SettingTFInsert(BaseModel):
     """
     TF insert settings.
 
@@ -23,7 +23,7 @@ class SettingTFInsert(BaseModel, extra=Extra.forbid):
     rotation: SettingRotation = SettingRotation()
 
 
-class SettingTF(BaseModel, extra=Extra.forbid):
+class SettingTF(BaseModel):
     """
     TF settings.
 
