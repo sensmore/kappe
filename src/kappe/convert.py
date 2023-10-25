@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from kappe import __version__
 from kappe.module.pointcloud import point_cloud
-from kappe.module.tf import tf_remove, tf_static_insert
+from kappe.module.tf import TF_SCHEMA_NAME, TF_SCHEMA_TEXT, tf_remove, tf_static_insert
 from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
 from kappe.settings import Settings
@@ -96,6 +96,8 @@ class Converter:
 
         self.statistics: Statistics = self.summary.statistics
 
+        self.tf_static_channel_id: int | None = None
+
         # mapping of schema name to schema
         self.schema_list: dict[str, Schema] = {}
         self.init_schema()
@@ -153,6 +155,12 @@ class Converter:
                 self.schema_list[out_schema] = self.writer.register_msgdef(
                     out_schema, new_data)
 
+        if self.config.tf_static and TF_SCHEMA_NAME not in self.schema_list:
+            # insert tf schema
+            self.schema_list[TF_SCHEMA_NAME] = self.writer.register_msgdef(
+                TF_SCHEMA_NAME, TF_SCHEMA_TEXT,
+            )
+
     def init_channel(self):
         for channel in self.summary.channels.values():
             metadata = channel.metadata
@@ -200,6 +208,14 @@ class Converter:
                     metadata=metadata,
                 )
                 self.writer._channel_ids[topic] = channel_id  # noqa: SLF001
+
+        if self.config.tf_static and '/tf_static' not in self.writer._channel_ids:  # noqa: SLF001
+            # insert tf schema
+            channel_id = self.writer._writer.register_channel(  # noqa: SLF001
+                topic='/tf_static',
+                message_encoding='cdr',
+                schema_id=self.schema_list[TF_SCHEMA_NAME].id,
+            )
 
     def get_selected_channels(self) -> set[str]:
         """Get a list of channels that should be converted."""
@@ -301,9 +317,6 @@ class Converter:
         if topic in ['/tf', '/tf_static']:
             tf_remove(self.config.tf_static, msg)
 
-        if topic in ['/tf_static'] and not self.tf_inserted:
-            self.tf_inserted = tf_static_insert(self.config.tf_static, msg)
-
         if topic in self.config.time_offset:
             time_offset(self.config.time_offset[topic], msg)
 
@@ -327,6 +340,10 @@ class Converter:
         start_time = self.statistics.message_start_time / 1e9
         if self.config.time_start is not None:
             start_time = max(start_time, self.config.time_start)
+
+        start_time_part_sec = int(start_time)
+        start_time_part_ns = int((start_time - start_time_part_sec) * 1e9)
+        start_time_ns = int(start_time * 1e9)
 
         end_time = self.statistics.message_end_time / 1e9
         if self.config.time_end is not None:
@@ -354,27 +371,26 @@ class Converter:
             if tf_static_iter is None:
                 raise ValueError('tf_static_iter is None')
 
-            secs = int(start_time)
-            nsecs = int((start_time - secs) * 1e9)
-            nano_int = int(start_time * 1e9)
-
             for count, msg in enumerate(tf_static_iter, 1):
+                if msg.schema is None:
+                    continue
                 # patch header stamp
-                for transform in msg.ros_msg.transforms:
+                ros_msg = msg.decoded_message
+                for transform in ros_msg.transforms:
                     # foxglove does not tf msg with the exact same timestamp
-                    nsecs += 1
-                    nano_int += 1
+                    start_time_part_ns += 1
+                    start_time_ns += 1
 
-                    transform.header.stamp.sec = secs
-                    transform.header.stamp.nanosec = nsecs
+                    transform.header.stamp.sec = start_time_part_sec
+                    transform.header.stamp.nanosec = start_time_part_ns
 
                 self.writer.write_message(
                     topic=msg.channel.topic,
                     schema=self.schema_list[msg.schema.name],
-                    message=msg.ros_msg,
-                    log_time=nano_int,
-                    publish_time=nano_int,
-                    sequence=msg.sequence_count,
+                    message=ros_msg,
+                    log_time=start_time_ns,
+                    publish_time=start_time_ns,
+                    sequence=msg.message.sequence,
                 )
 
                 # performance hack
@@ -399,6 +415,17 @@ class Converter:
         logger.debug('Filtered topics: %s', filtered_channels)
 
         duration = end_time - start_time
+
+        # insert tf_static messages at the beginning of the file
+        insert_tf = tf_static_insert(self.config.tf_static, start_time_ns)
+        if insert_tf is not None:
+            self.writer.write_message(
+                topic='/tf_static',
+                schema=self.schema_list[TF_SCHEMA_NAME],
+                message=insert_tf,
+                log_time=start_time_ns,
+                publish_time=start_time_ns,
+            )
 
         with tqdm(
             total=duration,
