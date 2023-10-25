@@ -112,18 +112,33 @@ class SplitWriter:
 def collect_tf(reader: McapReader) -> tuple[Schema, Channel, list[bytes]]:
     logger.info('Collecting static tf data')
 
-    tf_static_msgs = []
-    tf_static_schema: Schema | None = None
-    tf_static_channel: Channel | None = None
-    for schema, channel, message in reader.iter_messages(
-        topics=['/tf_static'],
-    ):
-        tf_static_msgs.append(message.data)
-        tf_static_schema = schema
-        tf_static_channel = channel
+    summary = reader.get_summary()
+    assert summary is not None
+    statistics = summary.statistics
+    assert statistics is not None
 
+    channels = list(filter(lambda x: x.topic == '/tf_static', summary.channels.values()))
+    assert len(channels) > 0
+    tf_static_channel = channels[0]
+    tf_static_amount = statistics.channel_message_counts[tf_static_channel.id]
+
+    tf_static_schema: Schema | None = summary.schemas.get(tf_static_channel.schema_id)
+
+    logger.info('Found %d tf_static messages', tf_static_amount)
+
+    tf_static_msgs = []
+    for count, (_, _, message) in enumerate(reader.iter_messages(
+        topics=['/tf_static'],
+    )):
+        tf_static_msgs.append(message.data)
+
+        # performance hack
+        if count == tf_static_amount:
+            break
     if tf_static_schema is None or tf_static_channel is None:
         raise ValueError('Could not find /tf_static topic in file')
+
+    logger.info('Collecting static tf data done')
 
     return tf_static_schema, tf_static_channel, tf_static_msgs
 
@@ -163,16 +178,20 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
             for w in outputs:
                 w.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
-        for schema, channel, message in tqdm(reader.iter_messages(
+        pbar = tqdm(total=int((max_end_time - min_start_time) / 1e9))
+
+        for schema, channel, message in reader.iter_messages(
             start_time=min_start_time,
             end_time=max_end_time,
-        )):
+        ):
             if schema is None:
                 continue
             pub_time_sec = message.publish_time / 1e9
             for i, split in enumerate(settings.splits):
                 if split.start <= pub_time_sec <= split.end:
                     outputs[i].write_message(schema, channel, message)
+            offset = int(pub_time_sec - min_start_time / 1e9)
+            pbar.update(offset - pbar.n)
 
     for split in outputs:
         split.finish()
