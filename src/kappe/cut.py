@@ -256,5 +256,7 @@ def cutter(input_file: Path, output: Path, settings: CutSettings) -> None:
 
     if settings.splits is not None:
         cutter_split(input_file, output, settings)
-    else:
+    elif settings.split_on_topic is not None:
         cutter_split_on(input_file, output, settings)
+    else:
+        raise ValueError('split or split_on_topic must be set')
