@@ -109,7 +109,7 @@ class SplitWriter:
         self._writer.finish()
 
 
-def collect_tf(reader: McapReader) -> tuple[Schema, Channel, list[bytes]]:
+def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]:
     logger.info('Collecting static tf data')
 
     summary = reader.get_summary()
@@ -120,9 +120,17 @@ def collect_tf(reader: McapReader) -> tuple[Schema, Channel, list[bytes]]:
     channels = list(filter(lambda x: x.topic == '/tf_static', summary.channels.values()))
     assert len(channels) > 0
     tf_static_channel = channels[0]
-    tf_static_amount = statistics.channel_message_counts[tf_static_channel.id]
+    if tf_static_channel is None:
+        return None
+
+    tf_static_amount = statistics.channel_message_counts.get(tf_static_channel.id)
+    if tf_static_amount is None:
+        # there will be no tf messages
+        return None
 
     tf_static_schema: Schema | None = summary.schemas.get(tf_static_channel.schema_id)
+    if tf_static_schema is None:
+        return None
 
     logger.info('Found %d tf_static messages', tf_static_amount)
 
@@ -135,10 +143,8 @@ def collect_tf(reader: McapReader) -> tuple[Schema, Channel, list[bytes]]:
         tf_static_msgs.append(message.data)
 
         # performance hack
-        if count == tf_static_amount:
+        if count >= tf_static_amount:
             break
-    if tf_static_schema is None or tf_static_channel is None:
-        raise ValueError('Could not find /tf_static topic in file')
 
     logger.info('Collecting static tf data done')
 
@@ -175,8 +181,8 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
             out = output / split.name
             outputs.append(SplitWriter(str(out), profile))
 
-        if settings.keep_tf_tree:
-            tf_static_schema, tf_static_channel, tf_static_msgs = collect_tf(reader)
+        if settings.keep_tf_tree and (ret := collect_tf(reader)):
+            tf_static_schema, tf_static_channel, tf_static_msgs = ret
             for w in outputs:
                 w.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
@@ -218,8 +224,8 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
         writer = SplitWriter(f'{output}/{counter:05}.mcap', profile=profile)
 
         tf_static_schema, tf_static_channel, tf_static_msgs = None, None, None
-        if settings.keep_tf_tree:
-            tf_static_schema, tf_static_channel, tf_static_msgs = collect_tf(reader)
+        if settings.keep_tf_tree and (ret := collect_tf(reader)):
+            tf_static_schema, tf_static_channel, tf_static_msgs = ret
             writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
         # TODO: check if topic exists
