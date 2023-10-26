@@ -15,17 +15,14 @@ except ImportError as err:
 
 
 class CompressImage(ConverterPlugin):
-
     def __init__(self, *, quality: int = 95):
         super().__init__()
         self.quality = quality
         self.logger.debug('quality=%d', quality)
 
     def convert(self, ros_msg: Any) -> Any:
-
         output = BytesIO()
-        img = Image.frombytes(
-            'RGB', (ros_msg.width, ros_msg.height), ros_msg.data)
+        img = Image.frombytes('RGB', (ros_msg.width, ros_msg.height), ros_msg.data)
         img.save(output, format='jpeg', optimize=True, quality=self.quality)
         return {
             'header': ros_msg.header,
@@ -39,12 +36,10 @@ class CompressImage(ConverterPlugin):
 
 
 class ReCompress(ConverterPlugin):
-
     def __init__(self, *, quality: int = 10):
         self.quality = quality
 
     def convert(self, ros_msg: Any) -> Any:
-
         stream = BytesIO(ros_msg.data)
         output = BytesIO()
         img = Image.open(stream)
@@ -66,7 +61,6 @@ class SaveCompress(ConverterPlugin):
         self.counter = 0
 
     def convert(self, ros_msg: Any) -> Any:
-
         stream = BytesIO(ros_msg.data)
         img = Image.open(stream)
         with Path(f'{self.counter:08}.jpeg').open('wb') as f:

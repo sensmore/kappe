@@ -127,9 +127,11 @@ def collect_tf(reader: McapReader) -> tuple[Schema, Channel, list[bytes]]:
     logger.info('Found %d tf_static messages', tf_static_amount)
 
     tf_static_msgs = []
-    for count, (_, _, message) in enumerate(reader.iter_messages(
-        topics=['/tf_static'],
-    )):
+    for count, (_, _, message) in enumerate(
+        reader.iter_messages(
+            topics=['/tf_static'],
+        )
+    ):
         tf_static_msgs.append(message.data)
 
         # performance hack
@@ -225,16 +227,21 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
             if schema is None:
                 continue
 
-            if channel.topic == settings.split_on_topic.topic and \
-                    message.publish_time - last_split_time > debounce_ns:
+            if (
+                channel.topic == settings.split_on_topic.topic
+                and message.publish_time - last_split_time > debounce_ns
+            ):
                 logger.info('Found split point at %.2fs', message.publish_time / 1e9)
                 last_split_time = message.publish_time
 
                 writer.finish()
                 counter += 1
                 writer = SplitWriter(f'{output}/{counter:05}.mcap', profile=profile)
-                if tf_static_schema is not None and tf_static_channel is not None and \
-                        tf_static_msgs is not None:
+                if (
+                    tf_static_schema is not None
+                    and tf_static_channel is not None
+                    and tf_static_msgs is not None
+                ):
                     writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
             writer.write_message(schema, channel, message)

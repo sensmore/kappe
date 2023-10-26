@@ -73,6 +73,18 @@ ignore = [
     'TRY003',  # raise-vanilla-args
     'TD',
     'FIX002',
+
+
+    # formater
+    'W191', # tab-indentation
+    'Q000', # bad-quotes-inline-string
+    'Q001', # bad-quotes-multiline-string
+    'Q002', # bad-quotes-docstring
+    'Q003', # avoidable-escaped-quote
+    'COM812', # missing-trailing-comma
+    'COM819', # prohibited-trailing-comma
+    'ISC001', # single-line-implicit-string-concatenation
+    'E501', # line-too-long
 ]
 
 src = ['src']
@@ -88,3 +100,6 @@ suppress-none-returning = true
 
 [tool.ruff.pep8-naming]
 classmethod-decorators = ["pydantic.validator"]
+
+[tool.ruff.format]
+quote-style = "single"

@@ -112,7 +112,6 @@ def dtype_from_fields(fields: Iterable[PointField], point_step: int | None = Non
 
 
 def fields_from_dtype(dtype: np.dtype) -> list[PointField]:
-
     fields = []
     for name, (dt, offset) in dtype.fields.items():
         fields.append(PointField(name, offset, NP_TO_FIELD_TYPE[dt.type]))
@@ -121,12 +120,13 @@ def fields_from_dtype(dtype: np.dtype) -> list[PointField]:
 
 
 def read_points(
-        cloud: Any,
-        field_names: list[str] | None = None,
-        *,
-        skip_nans: bool = False,
-        uvs: Iterable | None = None,
-        reshape_organized_cloud: bool = False) -> np.ndarray:
+    cloud: Any,
+    field_names: list[str] | None = None,
+    *,
+    skip_nans: bool = False,
+    uvs: Iterable | None = None,
+    reshape_organized_cloud: bool = False,
+) -> np.ndarray:
     """
     Read points from a sensor_msgs.PointCloud2 message.
 
@@ -143,12 +143,14 @@ def read_points(
     points = np.ndarray(
         shape=(cloud.width * cloud.height,),
         dtype=dtype_from_fields(cloud.fields, point_step=cloud.point_step),
-        buffer=cloud.data)
+        buffer=cloud.data,
+    )
 
     # Keep only the requested fields
     if field_names is not None:
-        assert all(field_name in points.dtype.names for field_name in field_names), \
-            'Requests field is not in the fields of the PointCloud!'
+        assert all(
+            field_name in points.dtype.names for field_name in field_names
+        ), 'Requests field is not in the fields of the PointCloud!'
         # Mask fields
         points = points[list(field_names)]
 
@@ -162,8 +164,7 @@ def read_points(
         not_nan_mask = np.ones(len(points), dtype=bool)
         for field_name in points.dtype.names:
             # Only keep points without any non values in the mask
-            not_nan_mask = np.logical_and(
-                not_nan_mask, ~np.isnan(points[field_name]))
+            not_nan_mask = np.logical_and(not_nan_mask, ~np.isnan(points[field_name]))
         # Select these points
         points = points[not_nan_mask]
 
@@ -182,11 +183,7 @@ def read_points(
     return points
 
 
-def create_cloud(
-        header: Any,
-        fields: Iterable,
-        points: np.ndarray,
-        step: int | None = None) -> Any:
+def create_cloud(header: Any, fields: Iterable, points: np.ndarray, step: int | None = None) -> Any:
     """
     Create a sensor_msgs.msg.PointCloud2 message.
 
@@ -203,27 +200,25 @@ def create_cloud(
     if isinstance(points, np.ndarray):
         # Check if this is an unstructured array
         if points.dtype.names is None:
-            assert all(fields[0].datatype == field.datatype for field in fields[1:]), \
-                'All fields need to have the same datatype. Pass a structured NumPy array \
+            assert all(fields[0].datatype == field.datatype for field in fields[1:]), 'All fields need to have the same datatype. Pass a structured NumPy array \
                     with multiple dtypes otherwise.'
             # Convert unstructured to structured array
             points = unstructured_to_structured(
-                points,
-                dtype=dtype_from_fields(fields, point_step=step))
+                points, dtype=dtype_from_fields(fields, point_step=step)
+            )
         else:
-            assert points.dtype == dtype_from_fields(fields, point_step=step), \
-                'PointFields and structured NumPy array dtype do not match for all fields! \
+            assert points.dtype == dtype_from_fields(fields, point_step=step), 'PointFields and structured NumPy array dtype do not match for all fields! \
                     Check their field order, names and types.'
     else:
         # Cast python objects to structured NumPy array (slow)
         points = np.array(
             # Points need to be tuples in the structured array
             list(map(tuple, points)),
-            dtype=dtype_from_fields(fields, point_step=step))
+            dtype=dtype_from_fields(fields, point_step=step),
+        )
 
     # Handle organized clouds
-    assert len(points.shape) <= 2, \
-        'Too many dimensions for organized cloud! \
+    assert len(points.shape) <= 2, 'Too many dimensions for organized cloud! \
             Points can only be organized in max. two dimensional space'
     height = 1
     width = points.shape[0]

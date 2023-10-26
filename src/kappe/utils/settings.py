@@ -1,11 +1,9 @@
-
 import math
 
 from pydantic import BaseModel
 
 
 def euler_to_quaternion(rpy: tuple[float, float, float]) -> tuple[float, float, float, float]:
-
     roll = math.radians(rpy[0])
     pitch = math.radians(rpy[1])
     yaw = math.radians(rpy[2])

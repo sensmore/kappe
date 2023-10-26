@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 class ConverterPlugin(ABC):
-
     def __init__(self, **_kwargs: Any):
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -27,10 +26,11 @@ class ConverterPlugin(ABC):
 def module_get_plugins(module: ModuleType) -> list[str]:
     """Get a list of available plugins in a module."""
     return [
-        cls for cls in dir(module) if isinstance(
-            getattr(module, cls), type) and
-        issubclass(getattr(module, cls), ConverterPlugin) and
-        cls != 'ConverterPlugin'
+        cls
+        for cls in dir(module)
+        if isinstance(getattr(module, cls), type)
+        and issubclass(getattr(module, cls), ConverterPlugin)
+        and cls != 'ConverterPlugin'
     ]
 
 

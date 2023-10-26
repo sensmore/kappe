@@ -26,8 +26,7 @@ def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple):
 
     if cfg.field_mapping is not None:
         for pc_field in ros_msg.fields:
-            pc_field.name = cfg.field_mapping.get(
-                pc_field.name, pc_field.name)
+            pc_field.name = cfg.field_mapping.get(pc_field.name, pc_field.name)
 
     fields = [x.name for x in ros_msg.fields]
     if 'x' in fields and 'y' in fields and 'z' in fields:
@@ -35,9 +34,7 @@ def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple):
         org_len = len(cloud)
 
         if cfg.remove_zero:
-            cloud = cloud[np.logical_and(
-                cloud['x'] != 0.0, cloud['y'] != 0.0,
-                cloud['z'] != 0.0)]
+            cloud = cloud[np.logical_and(cloud['x'] != 0.0, cloud['y'] != 0.0, cloud['z'] != 0.0)]
 
         quat = cfg.rotation.to_quaternion()
         if quat is not None:

@@ -51,7 +51,6 @@ def generate_qos(config: dict) -> str:
 
 
 class Converter:
-
     def __init__(self, config: Settings, input_path: Path, output_path: Path, raw_config: str = ''):
         self.config = config
         self.input_path = input_path
@@ -110,20 +109,22 @@ class Converter:
                 logger.warning(
                     'Schema "%s" has unsupported encoding "%s", skipping.',
                     schema.name,
-                    schema.encoding)
+                    schema.encoding,
+                )
                 continue
 
             schema_name = schema.name
             schema_def = schema.data.decode()
 
             # replace schema name if mapping is defined
-            schema_name = self.config.msg_schema.mapping.get(
-                schema_name, schema_name)
+            schema_name = self.config.msg_schema.mapping.get(schema_name, schema_name)
 
             if schema_name in self.config.msg_schema.definition:
                 schema_def = self.config.msg_schema.definition[schema_name]
-            elif schema.encoding == SchemaEncoding.ROS1 or \
-                    schema_name in self.config.msg_schema.mapping:
+            elif (
+                schema.encoding == SchemaEncoding.ROS1
+                or schema_name in self.config.msg_schema.mapping
+            ):
                 # if schema is not defined in the config, and it is a ROS1 schema or
                 # or scheme name is mapped, try to get the schema definition
                 # from ROS or disk
@@ -133,12 +134,10 @@ class Converter:
                 if new_data is not None:
                     schema_def = new_data
                 else:
-                    logger.warning(
-                        'Schema "%s" not found, skipping.', schema.name)
+                    logger.warning('Schema "%s" not found, skipping.', schema.name)
                     continue
 
-            self.schema_list[schema.name] = self.writer.register_msgdef(
-                schema_name, schema_def)
+            self.schema_list[schema.name] = self.writer.register_msgdef(schema_name, schema_def)
 
         # Register schemas for converters
         for conv_list in self.plugin_conv.values():
@@ -150,15 +149,14 @@ class Converter:
                 new_data = get_message_definition(out_schema, self.config.msg_folder)
 
                 if new_data is None:
-                    raise ValueError(
-                        f'Converter: Output schema "{out_schema}" not found')
-                self.schema_list[out_schema] = self.writer.register_msgdef(
-                    out_schema, new_data)
+                    raise ValueError(f'Converter: Output schema "{out_schema}" not found')
+                self.schema_list[out_schema] = self.writer.register_msgdef(out_schema, new_data)
 
         if self.config.tf_static and TF_SCHEMA_NAME not in self.schema_list:
             # insert tf schema
             self.schema_list[TF_SCHEMA_NAME] = self.writer.register_msgdef(
-                TF_SCHEMA_NAME, TF_SCHEMA_TEXT,
+                TF_SCHEMA_NAME,
+                TF_SCHEMA_TEXT,
             )
 
     def init_channel(self):
@@ -185,9 +183,11 @@ class Converter:
             if topic not in self.writer._channel_ids:  # noqa: SLF001
                 if self.mcap_header.profile == Profile.ROS1:
                     metadata = {
-                        'offered_qos_profiles': generate_qos({
-                            'durability': 1 if metadata.get('latching') else 2,
-                        }),
+                        'offered_qos_profiles': generate_qos(
+                            {
+                                'durability': 1 if metadata.get('latching') else 2,
+                            }
+                        ),
                     }
 
                 # TODO: make QoS configurable
@@ -195,11 +195,9 @@ class Converter:
                 if topic in ['/tf_static']:
                     old_qos = {}
                     if 'offered_qos_profiles' in metadata:
-                        old_qos = strictyaml.load(
-                            metadata['offered_qos_profiles']).data[0]
+                        old_qos = strictyaml.load(metadata['offered_qos_profiles']).data[0]
                     new_qos = {'durability': 1}
-                    metadata['offered_qos_profiles'] = generate_qos(
-                        old_qos | new_qos)
+                    metadata['offered_qos_profiles'] = generate_qos(old_qos | new_qos)
 
                 channel_id = self.writer._writer.register_channel(  # noqa: SLF001
                     topic=topic,
@@ -258,14 +256,14 @@ class Converter:
             decoder = Ros1DecoderFactory()
         elif self.mcap_header.profile != Profile.ROS2:
             warnings.warn(
-                f'Unsupported profile: {self.mcap_header.profile}, '
-                'trying to read as ROS2',
+                f'Unsupported profile: {self.mcap_header.profile}, ' 'trying to read as ROS2',
                 RuntimeWarning,
                 stacklevel=1,
             )
 
         self.reader = make_reader(
-            self.f_reader, decoder_factories=[decoder],
+            self.f_reader,
+            decoder_factories=[decoder],
         )
 
         return self.reader.iter_decoded_messages(
@@ -320,10 +318,14 @@ class Converter:
         if topic in self.config.time_offset:
             time_offset(self.config.time_offset[topic], msg)
 
-        if schema_name in [
-            'sensor_msgs/msg/PointCloud2',
+        if (
+            schema_name
+            in [
+                'sensor_msgs/msg/PointCloud2',
                 'sensor_msgs/PointCloud2',
-        ] and topic in self.config.point_cloud:
+            ]
+            and topic in self.config.point_cloud
+        ):
             point_cloud(self.config.point_cloud[topic], msg)
 
         self.writer.write_message(
@@ -336,7 +338,6 @@ class Converter:
         )
 
     def process_file(self, tqdm_idx: int = 0):
-
         start_time = self.statistics.message_start_time / 1e9
         if self.config.time_start is not None:
             start_time = max(start_time, self.config.time_start)
@@ -355,8 +356,8 @@ class Converter:
         # TODO: make better!
         if self.config.keep_all_static_tf:
             tf_static_channel = filter(
-                lambda x: x.topic == '/tf_static',
-                self.summary.channels.values())
+                lambda x: x.topic == '/tf_static', self.summary.channels.values()
+            )
 
             tf_static_channel = list(tf_static_channel)
             if len(tf_static_channel) != 1:
@@ -432,7 +433,7 @@ class Converter:
             position=tqdm_idx,
             desc=f'{self.input_path.name}',
             unit='secs',
-            bar_format='{l_bar}{bar}| {n:.02f}/{total:.02f} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',  # noqa: E501
+            bar_format='{l_bar}{bar}| {n:.02f}/{total:.02f} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',
         ) as pbar:
             for msg in msg_iter:
                 message = msg.message
