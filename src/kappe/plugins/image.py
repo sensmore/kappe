@@ -15,7 +15,7 @@ except ImportError as err:
 
 
 class CompressImage(ConverterPlugin):
-    def __init__(self, *, quality: int = 95):
+    def __init__(self, *, quality: int = 95) -> None:
         super().__init__()
         self.quality = quality
         self.logger.debug('quality=%d', quality)
@@ -36,7 +36,7 @@ class CompressImage(ConverterPlugin):
 
 
 class ReCompress(ConverterPlugin):
-    def __init__(self, *, quality: int = 10):
+    def __init__(self, *, quality: int = 10) -> None:
         self.quality = quality
 
     def convert(self, ros_msg: Any) -> Any:
@@ -56,7 +56,7 @@ class ReCompress(ConverterPlugin):
 
 
 class SaveCompress(ConverterPlugin):
-    def __init__(self, *, quality: int = 10):
+    def __init__(self, *, quality: int = 10) -> None:
         self.quality = quality
         self.counter = 0
 

@@ -48,7 +48,7 @@ class SplitWriter:
         self._writer = Writer(path)
         self._writer.start(profile=profile)
 
-    def set_static_tf(self, schema: Schema, channel: Channel, data: list[bytes]):
+    def set_static_tf(self, schema: Schema, channel: Channel, data: list[bytes]) -> None:
         self.static_tf_set = True
         self.static_tf_channel_id = self.register_channel(schema, channel)
         self.static_tf = data

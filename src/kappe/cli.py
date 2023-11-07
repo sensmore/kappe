@@ -17,7 +17,7 @@ from kappe.settings import SettingGeneral, SettingPlugin, Settings, SettingSchem
 
 
 class TqdmLoggingHandler(logging.Handler):
-    def emit(self, record: Any):
+    def emit(self, record: Any) -> None:
         try:
             msg = self.format(record)
             tqdm.write(msg)
@@ -36,7 +36,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def convert_worker(arg: tuple[Path, Path, Settings, int]):
+def convert_worker(arg: tuple[Path, Path, Settings, int]) -> None:
     # TODO: dataclass
     input_path, output_path, config, tqdm_idx = arg
 
@@ -243,15 +243,9 @@ class KappeCLI:
 
         cutter(mcap, output, config)
 
-    def version(self) -> None:
-        """
-        Print version.
-        """
-        logger.info('kappe %s', __version__)
-
 
 def main() -> None:
-    CLI(KappeCLI)
+    CLI(KappeCLI, version=__version__)
 
 
 if __name__ == '__main__':

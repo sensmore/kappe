@@ -4,11 +4,10 @@ import warnings
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import strictyaml
 from mcap.reader import DecodedMessageTuple, make_reader
-from mcap.records import Schema, Statistics
-from mcap.summary import Summary
 from mcap.well_known import Profile, SchemaEncoding
 from mcap_ros1.decoder import DecoderFactory as Ros1DecoderFactory
 from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
@@ -22,6 +21,10 @@ from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
 from kappe.settings import Settings
 from kappe.utils.msg_def import get_message_definition
+
+if TYPE_CHECKING:
+    from mcap.records import Schema, Statistics
+    from mcap.summary import Summary
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +54,9 @@ def generate_qos(config: dict) -> str:
 
 
 class Converter:
-    def __init__(self, config: Settings, input_path: Path, output_path: Path, raw_config: str = ''):
+    def __init__(
+        self, config: Settings, input_path: Path, output_path: Path, raw_config: str = ''
+    ) -> None:
         self.config = config
         self.input_path = input_path
         self.output_path = output_path
@@ -103,7 +108,7 @@ class Converter:
 
         self.init_channel()
 
-    def init_schema(self):
+    def init_schema(self) -> None:
         for schema in self.summary.schemas.values():
             if schema.encoding not in [SchemaEncoding.ROS1, SchemaEncoding.ROS2]:
                 logger.warning(
@@ -159,7 +164,7 @@ class Converter:
                 TF_SCHEMA_TEXT,
             )
 
-    def init_channel(self):
+    def init_channel(self) -> None:
         for channel in self.summary.channels.values():
             metadata = channel.metadata
             topic = channel.topic
@@ -272,7 +277,7 @@ class Converter:
             end_time=int(end_time * 1e9) if end_time else None,
         )
 
-    def process_message(self, msg: DecodedMessageTuple):
+    def process_message(self, msg: DecodedMessageTuple) -> None:
         schema, channel, message, ros_msg = msg
         schema_name = schema.name
         topic = channel.topic
@@ -337,7 +342,7 @@ class Converter:
             sequence=message.sequence,
         )
 
-    def process_file(self, tqdm_idx: int = 0):
+    def process_file(self, tqdm_idx: int = 0) -> None:
         start_time = self.statistics.message_start_time / 1e9
         if self.config.time_start is not None:
             start_time = max(start_time, self.config.time_start)
@@ -440,7 +445,7 @@ class Converter:
                 pbar.update((message.log_time / 1e9 - start_time) - pbar.n)
                 self.process_message(msg)
 
-    def finish(self):
+    def finish(self) -> None:
         # save used convert config
         self.writer._writer.add_attachment(  # noqa: SLF001
             create_time=time.time_ns(),

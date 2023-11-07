@@ -156,7 +156,7 @@ def tf_static_insert(cfg: SettingTF, stamp_ns: int) -> None | Any:
     return {'transforms': transforms}
 
 
-def tf_remove(cfg: SettingTF, msg: DecodedMessageTuple):
+def tf_remove(cfg: SettingTF, msg: DecodedMessageTuple) -> None:
     schema, channel, message, ros_msg = msg
 
     if cfg.remove:

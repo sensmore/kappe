@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConverterPlugin(ABC):
-    def __init__(self, **_kwargs: Any):
+    def __init__(self, **_kwargs: Any) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @property

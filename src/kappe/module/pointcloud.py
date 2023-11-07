@@ -21,7 +21,7 @@ class SettingPointCloud(BaseModel):
     field_mapping: dict[str, str] | None = None
 
 
-def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple):
+def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple) -> None:
     ros_msg = msg.decoded_message
 
     if cfg.field_mapping is not None:

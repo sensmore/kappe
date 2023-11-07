@@ -40,7 +40,7 @@ class SettingTimeOffset(BaseModel):
     update_publish_time: bool = False
 
 
-def time_offset_stamp(cfg: SettingTimeOffset, message: Message, stamp: TimeMsg):
+def time_offset_stamp(cfg: SettingTimeOffset, message: Message, stamp: TimeMsg) -> None:
     if cfg.pub_time:
         stamp_nano = message.publish_time
     else:
@@ -62,7 +62,7 @@ def time_offset_stamp(cfg: SettingTimeOffset, message: Message, stamp: TimeMsg):
         message.log_time = stamp_nano
 
 
-def time_offset_rec(cfg: SettingTimeOffset, message: Message, msg: Any):
+def time_offset_rec(cfg: SettingTimeOffset, message: Message, msg: Any) -> None:
     if not hasattr(msg, '__slots__'):
         return
 
@@ -79,7 +79,7 @@ def time_offset_rec(cfg: SettingTimeOffset, message: Message, msg: Any):
             time_offset_rec(cfg, message, attr)
 
 
-def time_offset(cfg: SettingTimeOffset, msg: DecodedMessageTuple):
+def time_offset(cfg: SettingTimeOffset, msg: DecodedMessageTuple) -> None:
     """Apply time offset to the message."""
     ros_msg = msg.decoded_message
     if not hasattr(msg, '__slots__'):
@@ -87,7 +87,7 @@ def time_offset(cfg: SettingTimeOffset, msg: DecodedMessageTuple):
     time_offset_rec(cfg, msg.message, ros_msg)
 
 
-def fix_ros1_time(msg: Any):
+def fix_ros1_time(msg: Any) -> None:
     """
     Fix ROS1 time and duration types, recursively inplace.
 
