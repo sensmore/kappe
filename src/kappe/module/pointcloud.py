@@ -1,9 +1,9 @@
 import numpy as np
 from mcap.reader import DecodedMessageTuple
+from pointcloud2 import create_cloud, read_points
 from pydantic import BaseModel
 from scipy.spatial.transform import Rotation
 
-from kappe.utils.pointcloud2 import create_cloud, read_points
 from kappe.utils.settings import SettingRotation
 
 
@@ -54,11 +54,11 @@ def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple) -> None:
                 cloud,
                 ros_msg.point_step,
             )
-            ros_msg.data = msg_cloud['data']
+            ros_msg.data = msg_cloud.data
 
-            ros_msg.height = msg_cloud['height']
-            ros_msg.width = msg_cloud['width']
-            ros_msg.is_dense = msg_cloud['is_dense']
-            ros_msg.is_bigendian = msg_cloud['is_bigendian']
-            ros_msg.point_step = msg_cloud['point_step']
-            ros_msg.row_step = msg_cloud['row_step']
+            ros_msg.height = msg_cloud.height
+            ros_msg.width = msg_cloud.width
+            ros_msg.is_dense = msg_cloud.is_dense
+            ros_msg.is_bigendian = msg_cloud.is_bigendian
+            ros_msg.point_step = msg_cloud.point_step
+            ros_msg.row_step = msg_cloud.row_step
