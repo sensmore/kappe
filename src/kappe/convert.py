@@ -446,6 +446,7 @@ class Converter:
             desc=f'{self.input_path.name}',
             unit='secs',
             bar_format='{l_bar}{bar}| {n:.02f}/{total:.02f} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',  # noqa: E501
+            disable=not self.config.progress,
         ) as pbar:
             for msg in msg_iter:
                 message = msg.message

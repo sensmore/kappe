@@ -34,6 +34,7 @@ class CutSettings(BaseModel):
     keep_tf_tree: bool = False
     splits: list[CutSplits] | None = None
     split_on_topic: CutSplitOn | None = None
+    progress: bool = True
 
 
 class SplitWriter:
@@ -186,7 +187,7 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
             for w in outputs:
                 w.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
-        pbar = tqdm(total=int((max_end_time - min_start_time) / 1e9))
+        pbar = tqdm(total=int((max_end_time - min_start_time) / 1e9), disable=not settings.progress)
 
         for schema, channel, message in reader.iter_messages(
             start_time=min_start_time,
@@ -229,7 +230,7 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
             writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
         # TODO: check if topic exists
-        for schema, channel, message in tqdm(reader.iter_messages()):
+        for schema, channel, message in tqdm(reader.iter_messages(), disable=not settings.progress):
             if schema is None:
                 continue
 
@@ -258,9 +259,8 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
 def cutter(input_file: Path, output: Path, settings: CutSettings) -> None:
     """Cut a file into multiple files."""
     if not input_file.exists():
-        raise FileNotFoundError(f'Input file {input_file} does not exist')
-
-    if settings.splits is not None:
+        logger.error('Input file does not exist: %s', input_file)
+    elif settings.splits is not None:
         cutter_split(input_file, output, settings)
     elif settings.split_on_topic is not None:
         cutter_split_on(input_file, output, settings)

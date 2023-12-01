@@ -80,6 +80,7 @@ class Settings(BaseModel):
     :ivar keep_all_static_tf: Keep all static TF frames.
     :ivar msg_folder: Folder containing message definitions, defaults to ./msgs/.
     :ivar raw_text: Raw yaml as read from disk.
+    :ivar progress: Show progress bar.
     """
 
     general: SettingGeneral = SettingGeneral()
@@ -100,3 +101,5 @@ class Settings(BaseModel):
     plugin_folder: Path | None = Path('./plugins')
 
     raw_text: str = ''
+
+    progress: bool = True

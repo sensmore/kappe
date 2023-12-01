@@ -98,6 +98,16 @@ def convert_process(
 
 
 class KappeCLI:
+    def __init__(
+        self,
+        *,
+        progress: bool = True,
+    ) -> None:
+        """general options
+        :ivar progress: Display progress bar
+        """
+        self.progress = progress
+
     def convert(  # noqa: PLR0913, PLR0912
         self,
         input: Path,  # noqa: A002
@@ -166,10 +176,11 @@ class KappeCLI:
         config.keep_all_static_tf = keep_all_static_tf
         config.msg_folder = msg_folder
         config.plugin_folder = plugin_folder
+        config.progress = self.progress
 
         # check for msgs folder
         if msg_folder is not None and not msg_folder.exists():
-            logger.error('msg_folder does not exist: %s', msg_folder)
+            logger.warning('msg_folder does not exist: %s', msg_folder)
             msg_folder = None
 
         errors = False
@@ -186,7 +197,8 @@ class KappeCLI:
 
         input_path: Path = input
         if not input_path.exists():
-            raise FileNotFoundError(f'Input path does not exist: {input_path}')
+            errors = True
+            logger.error('Input path does not exist: %s', input_path)
 
         output_path: Path = output
 
