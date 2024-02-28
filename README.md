@@ -270,6 +270,9 @@ When `keep_tf_tree` is set to `true` all splits will have the same `/tf_static` 
 
 ### Split on time
 
+The start and end times define the range to extract into each split file.
+They are specified in seconds which is compared against the log time (UNIX Timestamp).
+
 ```yaml
 keep_tf_tree: true
 splits:
