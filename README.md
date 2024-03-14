@@ -19,6 +19,7 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
     - [Topic](#topic)
       - [Rename a topic](#rename-a-topic)
       - [Remove a topic](#remove-a-topic)
+    - [Topic Times](#topic-times)
       - [Update the ROS header time](#update-the-ros-header-time)
       - [Change ROS Timestamp to publish time](#change-ros-timestamp-to-publish-time)
       - [Change MCAP pub/log time from ROS header](#change-mcap-publog-time-from-ros-header)
@@ -92,6 +93,11 @@ topic:
   remove:
     - /points
 ```
+
+### Topic Times
+
+The `time_offset` config manipulates the mcap message time and/or the ROS header timestamp.
+When using `default` as topic name, the config will be applied to all messages.
 
 #### Update the ROS header time
 
