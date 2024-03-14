@@ -1,56 +1,33 @@
 import logging
 import time
 import warnings
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import strictyaml
-from mcap.reader import DecodedMessageTuple, make_reader
+from mcap.reader import make_reader
 from mcap.well_known import Profile, SchemaEncoding
 from mcap_ros1.decoder import DecoderFactory as Ros1DecoderFactory
 from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
-from mcap_ros2.writer import Writer as McapWriter
+from pydantic_yaml import to_yaml_str
 from tqdm import tqdm
 
 from kappe import __version__
 from kappe.module.pointcloud import point_cloud
+from kappe.module.qos import DurabilityPolicy, Qos, dump_qos_list, parse_qos_list
 from kappe.module.tf import TF_SCHEMA_NAME, TF_SCHEMA_TEXT, tf_remove, tf_static_insert
 from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
 from kappe.settings import Settings
 from kappe.utils.msg_def import get_message_definition
+from kappe.writer import WrappedDecodedMessage, WrappedWriter
 
 if TYPE_CHECKING:
     from mcap.records import Schema, Statistics
     from mcap.summary import Summary
 
 logger = logging.getLogger(__name__)
-
-
-def generate_qos(config: dict) -> str:
-    qos_default = {
-        'history': 3,
-        'depth': 0,
-        'reliability': 1,
-        'durability': 2,
-        'deadline': {
-            'sec': 9223372036,
-            'nsec': 854775807,
-        },
-        'lifespan': {
-            'sec': 9223372036,
-            'nsec': 854775807,
-        },
-        'liveliness': 1,
-        'liveliness_lease_duration': {
-            'sec': 9223372036,
-            'nsec': 854775807,
-        },
-        'avoid_ros_namespace_conventions': False,
-    }
-    return strictyaml.as_document([qos_default | config]).as_yaml()
 
 
 class Converter:
@@ -83,7 +60,7 @@ class Converter:
         self.f_writer = output_path.open('wb')
 
         self.reader = make_reader(self.f_reader)
-        self.writer = McapWriter(self.f_writer)
+        self.writer = WrappedWriter(self.f_writer)
 
         self.mcap_header = self.reader.get_header()
         if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
@@ -187,22 +164,23 @@ class Converter:
             # Workaround, to set metadata for the channel
             if topic not in self.writer._channel_ids:  # noqa: SLF001
                 if self.mcap_header.profile == Profile.ROS1:
-                    metadata = {
-                        'offered_qos_profiles': generate_qos(
-                            {
-                                'durability': 1 if metadata.get('latching') else 2,
-                            }
-                        ),
-                    }
+                    qos = Qos()
+                    qos.durability = (
+                        DurabilityPolicy.TRANSIENT_LOCAL
+                        if metadata.get('latching')
+                        else DurabilityPolicy.VOLATILE
+                    )
+
+                    metadata = {'offered_qos_profiles': dump_qos_list(qos)}
 
                 # TODO: make QoS configurable
                 # TODO: add QoS enums
                 if topic in ['/tf_static']:
-                    old_qos = {}
+                    qos = Qos()
                     if 'offered_qos_profiles' in metadata:
-                        old_qos = strictyaml.load(metadata['offered_qos_profiles']).data[0]
-                    new_qos = {'durability': 1}
-                    metadata['offered_qos_profiles'] = generate_qos(old_qos | new_qos)
+                        qos = parse_qos_list(metadata['offered_qos_profiles'])[0]
+                    qos.durability = DurabilityPolicy.VOLATILE
+                    metadata['offered_qos_profiles'] = dump_qos_list(qos)
 
                 channel_id = self.writer._writer.register_channel(  # noqa: SLF001
                     topic=topic,
@@ -247,7 +225,7 @@ class Converter:
         topics: Iterable[str] | None = None,
         start_time: float | None = None,
         end_time: float | None = None,
-    ) -> Iterator[DecodedMessageTuple]:
+    ) -> Generator[WrappedDecodedMessage, None, None]:
         """Read messages from the mcap file.
 
         Args:
@@ -271,21 +249,24 @@ class Converter:
             decoder_factories=[decoder],
         )
 
-        return self.reader.iter_decoded_messages(
+        for schema, channel, message in self.reader.iter_messages(
             topics=topics,
             start_time=int(start_time * 1e9) if start_time else None,
             end_time=int(end_time * 1e9) if end_time else None,
-        )
+        ):
+            yield WrappedDecodedMessage(schema, channel, message)
 
-    def process_message(self, msg: DecodedMessageTuple) -> None:
-        schema, channel, message, ros_msg = msg
+    def process_message(self, msg: WrappedDecodedMessage) -> None:
+        schema = msg.schema
+        channel = msg.channel
+        message = msg.message
         schema_name = schema.name
         topic = channel.topic
 
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
-            if conv_msg := conv.convert(ros_msg):
+            if conv_msg := conv.convert(msg.decoded_message):
                 # TODO: pass this to process_message?
                 self.writer.write_message(
                     topic=output_topic,
@@ -310,7 +291,7 @@ class Converter:
                 return
 
         if self.mcap_header.profile == Profile.ROS1:
-            fix_ros1_time(ros_msg)
+            fix_ros1_time(msg.decoded_message)
 
         # drop messages that are not in the schema list
         msg_schema = self.schema_list.get(schema_name)
@@ -318,25 +299,22 @@ class Converter:
             return
 
         if topic in ['/tf', '/tf_static']:
-            tf_remove(self.config.tf_static, msg)
-
-        if topic in self.config.time_offset:
-            time_offset(self.config.time_offset[topic], msg)
-
-        if (
-            schema_name
-            in [
-                'sensor_msgs/msg/PointCloud2',
-                'sensor_msgs/PointCloud2',
-            ]
+            if not tf_remove(self.config.tf_static, msg):
+                # remove empty tf messages
+                return
+        elif (
+            schema_name in ['sensor_msgs/msg/PointCloud2', 'sensor_msgs/PointCloud2']
             and topic in self.config.point_cloud
         ):
             point_cloud(self.config.point_cloud[topic], msg)
 
+        if offset := (self.config.time_offset.get(topic) or self.config.time_offset.get('default')):
+            time_offset(offset, msg)
+
         self.writer.write_message(
             topic=self.config.topic.mapping.get(topic, topic),
             schema=self.schema_list[schema_name],
-            message=ros_msg,
+            message=msg,
             log_time=message.log_time,
             publish_time=message.publish_time,
             sequence=message.sequence,
@@ -430,16 +408,18 @@ class Converter:
         duration = end_time - start_time
 
         # insert tf_static messages at the beginning of the file
-        insert_tf = tf_static_insert(self.config.tf_static, start_time_ns)
+        tf_time = start_time_ns
+        if offset := (self.config.time_offset.get('default')):
+            tf_time += int(offset.sec * 1e9 + offset.nanosec)
+        insert_tf = tf_static_insert(self.config.tf_static, tf_time)
         if insert_tf is not None:
             self.writer.write_message(
                 topic='/tf_static',
                 schema=self.schema_list[TF_SCHEMA_NAME],
                 message=insert_tf,
-                log_time=start_time_ns,
-                publish_time=start_time_ns,
+                log_time=tf_time,
+                publish_time=tf_time,
             )
-
         with tqdm(
             total=duration,
             position=tqdm_idx,
@@ -454,25 +434,26 @@ class Converter:
                 self.process_message(msg)
 
     def finish(self) -> None:
-        # save used convert config
-        self.writer._writer.add_attachment(  # noqa: SLF001
-            create_time=time.time_ns(),
-            log_time=time.time_ns(),
-            name='convert_config.yaml',
-            media_type='text/yaml',
-            data=self.config.raw_text.encode(),
-        )
+        if self.config.save_metadata:
+            # save used convert config
+            self.writer._writer.add_attachment(  # noqa: SLF001
+                create_time=time.time_ns(),
+                log_time=time.time_ns(),
+                name='kappe_config.yaml',
+                media_type='text/yaml',
+                data=to_yaml_str(self.config).encode(),
+            )
 
-        # store useful information
-        self.writer._writer.add_metadata(  # noqa: SLF001
-            name='convert_metadata',
-            data={
-                'input_path': str(self.input_path),
-                'output_path': str(self.output_path),
-                'date': datetime.now(tz=timezone.utc).isoformat(),
-                'version': __version__,
-            },
-        )
+            # store useful information
+            self.writer._writer.add_metadata(  # noqa: SLF001
+                name='kappe_metadata',
+                data={
+                    'input_path': str(self.input_path),
+                    'output_path': str(self.output_path),
+                    'date': datetime.now(tz=timezone.utc).isoformat(),
+                    'version': __version__,
+                },
+            )
 
         self.writer.finish()
 

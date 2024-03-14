@@ -79,8 +79,8 @@ class Settings(BaseModel):
     :ivar time_end: End time of the recording.
     :ivar keep_all_static_tf: Keep all static TF frames.
     :ivar msg_folder: Folder containing message definitions, defaults to ./msgs/.
-    :ivar raw_text: Raw yaml as read from disk.
     :ivar progress: Show progress bar.
+    :ivar save_metadata: If true save the config as attachment in the new created mcap.
     """
 
     general: SettingGeneral = SettingGeneral()
@@ -100,6 +100,5 @@ class Settings(BaseModel):
     msg_folder: Path | None = Path('./msgs')
     plugin_folder: Path | None = Path('./plugins')
 
-    raw_text: str = ''
-
     progress: bool = True
+    save_metadata: bool = True

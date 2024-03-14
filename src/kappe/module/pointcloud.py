@@ -1,10 +1,10 @@
 import numpy as np
-from mcap.reader import DecodedMessageTuple
 from pointcloud2 import create_cloud, read_points
 from pydantic import BaseModel
 from scipy.spatial.transform import Rotation
 
 from kappe.utils.settings import SettingRotation
+from kappe.writer import WrappedDecodedMessage
 
 
 class SettingPointCloud(BaseModel):
@@ -21,7 +21,7 @@ class SettingPointCloud(BaseModel):
     field_mapping: dict[str, str] | None = None
 
 
-def point_cloud(cfg: SettingPointCloud, msg: DecodedMessageTuple) -> None:
+def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
     ros_msg = msg.decoded_message
 
     if cfg.field_mapping is not None:

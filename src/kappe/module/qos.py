@@ -1,7 +1,8 @@
-from dataclasses import dataclass
 from enum import IntEnum
 
-import strictyaml
+from pydantic import RootModel
+from pydantic.dataclasses import dataclass
+from pydantic_yaml import parse_yaml_raw_as, to_yaml_str
 
 
 class HistoryPolicy(IntEnum):
@@ -81,17 +82,12 @@ class Qos:
     liveliness_lease_duration: QosDuration = QOS_DURATION_DEFAULT
     avoid_ros_namespace_conventions: bool = False
 
-    def to_yaml(self) -> str:
-        d = {
-            'history': self.history.name,
-            'depth': self.depth,
-            'reliability': self.reliability.name,
-            'durability': self.durability.name,
-            'deadline': self.deadline,
-            'lifespan': self.lifespan,
-            'liveliness': self.liveliness.name,
-            'liveliness_lease_duration': self.liveliness_lease_duration,
-            'avoid_ros_namespace_conventions': self.avoid_ros_namespace_conventions,
-        }
 
-        return strictyaml.as_document(d).as_yaml()
+def parse_qos_list(raw: str) -> list[Qos]:
+    return parse_yaml_raw_as(RootModel[list[Qos]], raw).root
+
+
+def dump_qos_list(lst: list[Qos] | Qos) -> str:
+    if not isinstance(lst, list):
+        lst = [lst]
+    return to_yaml_str(RootModel[list[Qos]](lst))

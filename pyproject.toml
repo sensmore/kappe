@@ -18,12 +18,12 @@ dependencies = [
     "mcap-ros2-support>=0.3.0",
     "numpy",
     "pydantic>=2.4.2",
-    "strictyaml",
     "tqdm",
     "pyyaml>=6.0.1",
     "scipy>=1.11.1",
     "jsonargparse[signatures]>=4.25.0",
     "pointcloud2>=0.2.1",
+    "pydantic-yaml>=1.2.1",
 ]
 
 dynamic = ["version"]

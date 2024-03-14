@@ -2,11 +2,12 @@ import logging
 from types import SimpleNamespace
 from typing import Any
 
-from mcap.reader import DecodedMessageTuple
 from mcap.records import Message
 from mcap_ros1._vendor.genpy.rostime import Duration as ROS1Duration
 from mcap_ros1._vendor.genpy.rostime import Time as ROS1Time
 from pydantic import BaseModel
+
+from kappe.writer import WrappedDecodedMessage
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +47,11 @@ def time_offset_stamp(cfg: SettingTimeOffset, message: Message, stamp: TimeMsg) 
     else:
         stamp_nano = int(stamp.sec * 1e9) + int(stamp.nanosec)
 
-    stamp_nano += cfg.sec
-    stamp_nano += int(cfg.nanosec * 1e9)
+    stamp_nano += int(cfg.sec * 1e9)
+    stamp_nano += int(cfg.nanosec)
 
     sec = int(stamp_nano // 1e9)
-    nanosec = stamp_nano - (sec * 1e9)
+    nanosec = int(stamp_nano - (sec * 1e9))
 
     stamp.sec = sec
     stamp.nanosec = nanosec
@@ -79,11 +80,9 @@ def time_offset_rec(cfg: SettingTimeOffset, message: Message, msg: Any) -> None:
             time_offset_rec(cfg, message, attr)
 
 
-def time_offset(cfg: SettingTimeOffset, msg: DecodedMessageTuple) -> None:
+def time_offset(cfg: SettingTimeOffset, msg: WrappedDecodedMessage) -> None:
     """Apply time offset to the message."""
     ros_msg = msg.decoded_message
-    if not hasattr(msg, '__slots__'):
-        return
     time_offset_rec(cfg, msg.message, ros_msg)
 
 

@@ -1,9 +1,9 @@
 from typing import Any
 
-from mcap.reader import DecodedMessageTuple
 from pydantic import BaseModel
 
 from kappe.utils.settings import SettingRotation, SettingTranslation
+from kappe.writer import WrappedDecodedMessage
 
 TF_SCHEMA_NAME = 'tf2_msgs/msg/TFMessage'
 TF_SCHEMA_TEXT = """
@@ -156,10 +156,11 @@ def tf_static_insert(cfg: SettingTF, stamp_ns: int) -> None | Any:
     return {'transforms': transforms}
 
 
-def tf_remove(cfg: SettingTF, msg: DecodedMessageTuple) -> None:
-    schema, channel, message, ros_msg = msg
-
+def tf_remove(cfg: SettingTF, msg: WrappedDecodedMessage) -> bool:
+    ros_msg = msg.decoded_message
     if cfg.remove:
-        for transform in ros_msg.transforms:
-            if transform.child_frame_id in cfg.remove:
-                ros_msg.transforms.remove(transform)
+        ros_msg.transforms = [
+            tf for tf in ros_msg.transforms if tf.child_frame_id not in cfg.remove
+        ]
+        return len(ros_msg.transforms) > 0
+    return True
