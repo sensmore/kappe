@@ -249,12 +249,14 @@ class Converter:
             decoder_factories=[decoder],
         )
 
+        decoder_cache = {}
+
         for schema, channel, message in self.reader.iter_messages(
             topics=topics,
             start_time=int(start_time * 1e9) if start_time else None,
             end_time=int(end_time * 1e9) if end_time else None,
         ):
-            yield WrappedDecodedMessage(schema, channel, message)
+            yield WrappedDecodedMessage(schema, channel, message, decoder_cache=decoder_cache)
 
     def process_message(self, msg: WrappedDecodedMessage) -> None:
         schema = msg.schema
