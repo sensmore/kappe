@@ -55,46 +55,54 @@ def convert_worker(arg: tuple[Path, Path, Settings, int]) -> None:
     logger.info('Done    %s', output_path)
 
 
-def convert_process(
+def convert_process(  # noqa: PLR0912
     config: Settings,
-    input_path: Path,
+    input_path: Path | list[Path],
     output_path: Path,
     *,
     overwrite: bool,
 ) -> None:
     tasks: list[tuple[Path, Path, Settings, int]] = []
 
-    # TODO: make more generic
-    if input_path.is_file():
-        mcap_out = output_path / input_path.name
-        if mcap_out.exists() and not overwrite:
-            logger.info('File exists: %s -> skipping', mcap_out)
-        else:
-            tasks.append((input_path, mcap_out, config, 0))
+    if isinstance(input_path, list):
+        for idx, inp in enumerate(input_path):
+            tasks.append((inp, output_path / inp.name, config, idx))
+    elif input_path.is_file():
+        tasks.append((input_path, output_path / input_path.name, config, 0))
     else:
         for idx, mcap_in in enumerate(input_path.rglob('**/*.mcap')):
             mcap_out = output_path / mcap_in.relative_to(input_path.parent)
-
-            if mcap_out.exists() and not overwrite:
-                logger.info('File exists: %s -> skipping', mcap_out)
-                continue
             tasks.append((mcap_in, mcap_out, config, idx))
+
+    def filter_tasks(task: tuple[Path, Path, Settings, int]) -> bool:
+        mcap_out = task[1]
+        if mcap_out.exists():
+            logger.info('File exists: %s -> skipping', mcap_out)
+            return False
+
+        return True
+
+    if not overwrite:
+        tasks = list(filter(filter_tasks, tasks))
 
     if len(tasks) == 0:
         logger.info('No files to convert')
         return
 
     logger.info('Using %d threads', config.general.threads)
-
-    pool = None
-    try:
-        process_map(convert_worker, tasks, max_workers=min(config.general.threads, len(tasks)))
-    except KeyboardInterrupt:
-        logger.info('Keyboard interrupt')
-    finally:
-        if pool is not None:
-            pool.terminate()
-            pool.join()
+    if config.general.threads == 0:
+        for t in tasks:
+            convert_worker(t)
+    else:
+        pool = None
+        try:
+            process_map(convert_worker, tasks, max_workers=min(config.general.threads, len(tasks)))
+        except KeyboardInterrupt:
+            logger.info('Keyboard interrupt')
+        finally:
+            if pool is not None:
+                pool.terminate()
+                pool.join()
 
 
 class KappeCLI:
@@ -108,9 +116,9 @@ class KappeCLI:
         """
         self.progress = progress
 
-    def convert(  # noqa: PLR0913, PLR0912
+    def convert(  # noqa: PLR0913, PLR0912, PLR0915
         self,
-        input: Path,  # noqa: A002
+        input: list[Path] | Path,  # noqa: A002
         output: Path,
         *,
         general: SettingGeneral | None = None,
@@ -125,6 +133,7 @@ class KappeCLI:
         time_start: float | None = None,
         time_end: float | None = None,
         keep_all_static_tf: bool = False,
+        save_metadata: bool = True,
         overwrite: bool = False,
     ) -> None:
         """Convert mcap(s) with changing, filtering, converting, ... data.
@@ -177,6 +186,7 @@ class KappeCLI:
         config.msg_folder = msg_folder
         config.plugin_folder = plugin_folder
         config.progress = self.progress
+        config.save_metadata = save_metadata
 
         # check for msgs folder
         if msg_folder is not None and not msg_folder.exists():
@@ -195,10 +205,14 @@ class KappeCLI:
             errors = True
             logger.error('Failed to load plugin: %s', conv.name)
 
-        input_path: Path = input
-        if not input_path.exists():
+        if isinstance(input, list):
+            for inp in input:
+                if not inp.exists():
+                    errors = True
+                    logger.error('Input path does not exist: %s', inp)
+        elif not input.exists():
             errors = True
-            logger.error('Input path does not exist: %s', input_path)
+            logger.error('Input path does not exist: %s', input)
 
         output_path: Path = output
 
@@ -207,7 +221,7 @@ class KappeCLI:
         else:
             convert_process(
                 config,
-                input_path,
+                input,
                 output_path,
                 overwrite=overwrite,
             )
