@@ -270,7 +270,7 @@ class Converter:
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
-            if conv_msg := conv.convert(msg.decoded_message):
+            if conv_msg := conv.convert(msg.decoded_message, channel):
                 # TODO: pass this to process_message?
                 self.writer.write_message(
                     topic=output_topic,
@@ -280,6 +280,9 @@ class Converter:
                     publish_time=message.publish_time,
                     sequence=message.sequence,
                 )
+                
+                # update channel metadata to include any changes made by a plugin 
+                self.summary.channels[channel.id].metadata.update(channel.metadata)
 
         # late remove topics which are required by a plugin
         if topic in self.config.topic.remove:
