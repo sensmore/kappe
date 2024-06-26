@@ -63,8 +63,8 @@ class Converter:
         self.writer = WrappedWriter(self.f_writer)
 
         self.mcap_header = self.reader.get_header()
-        if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
-            logger.error('msg_folder is required for ROS1 mcap! See README for more information')
+        if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folders is None:
+            logger.error('msg_folders is required for ROS1 mcap! See README for more information')
 
         summ = self.reader.get_summary()
 
@@ -111,7 +111,7 @@ class Converter:
                 # or scheme name is mapped, try to get the schema definition
                 # from ROS or disk
 
-                new_data = get_message_definition(schema_name, self.config.msg_folder)
+                new_data = get_message_definition(schema_name, self.config.msg_folders)
 
                 if new_data is not None:
                     schema_def = new_data
@@ -128,7 +128,7 @@ class Converter:
                 if out_schema in self.schema_list:
                     continue
 
-                new_data = get_message_definition(out_schema, self.config.msg_folder)
+                new_data = get_message_definition(out_schema, self.config.msg_folders)
 
                 if new_data is None:
                     raise ValueError(f'Converter: Output schema "{out_schema}" not found')
