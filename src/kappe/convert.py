@@ -32,12 +32,13 @@ logger = logging.getLogger(__name__)
 
 class Converter:
     def __init__(
-        self, config: Settings, input_path: Path, output_path: Path, raw_config: str = ''
+        self, config: Settings, input_path: Path, output_path: Path, raw_config: str = '', use_sourced_msgs: bool = True
     ) -> None:
         self.config = config
         self.input_path = input_path
         self.output_path = output_path
         self.raw_config = raw_config
+        self.use_sourced_msgs = use_sourced_msgs
 
         self.drop_msg_count: dict[str, int] = {}
 
@@ -125,14 +126,15 @@ class Converter:
         for conv_list in self.plugin_conv.values():
             for conv, _out_topic in conv_list:
                 out_schema = conv.output_schema
-                if out_schema in self.schema_list:
+                if out_schema in self.schema_list and not self.use_sourced_msgs:
                     continue
 
                 new_data = get_message_definition(out_schema, self.config.msg_folders)
 
                 if new_data is None:
-                    raise ValueError(f'Converter: Output schema "{out_schema}" not found')
+                    raise ValueError(f'Converter: Output schema {out_schema} not found')
                 self.schema_list[out_schema] = self.writer.register_msgdef(out_schema, new_data)
+                conv.set_output_schema(self.schema_list[out_schema])
 
         if self.config.tf_static and TF_SCHEMA_NAME not in self.schema_list:
             # insert tf schema

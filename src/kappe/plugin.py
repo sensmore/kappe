@@ -5,6 +5,7 @@ from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+from mcap.records import Schema
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 class ConverterPlugin(ABC):
     def __init__(self, **_kwargs: Any) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
+        self._schema: Schema = None
 
     @property
     @abstractmethod
@@ -19,8 +21,15 @@ class ConverterPlugin(ABC):
         pass
 
     @abstractmethod
-    def convert(self, ros_msg: Any) -> Any:
+    def convert(self, ros_msg: Any, *args: Any) -> Any:
         pass
+
+    def set_output_schema(self, data: Schema) -> None:
+        self._schema = data
+    
+    @property
+    def output_schema_data(self) -> Schema:
+        return self._schema
 
 
 def module_get_plugins(module: ModuleType) -> list[str]:
