@@ -32,12 +32,13 @@ logger = logging.getLogger(__name__)
 
 class Converter:
     def __init__(
-        self, config: Settings, input_path: Path, output_path: Path, raw_config: str = ''
+        self, config: Settings, input_path: Path, output_path: Path, raw_config: str = '', use_sourced_msgs: bool = True
     ) -> None:
         self.config = config
         self.input_path = input_path
         self.output_path = output_path
         self.raw_config = raw_config
+        self.use_sourced_msgs = use_sourced_msgs
 
         self.drop_msg_count: dict[str, int] = {}
 
@@ -63,8 +64,8 @@ class Converter:
         self.writer = WrappedWriter(self.f_writer)
 
         self.mcap_header = self.reader.get_header()
-        if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
-            logger.error('msg_folder is required for ROS1 mcap! See README for more information')
+        if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folders is None:
+            logger.error('msg_folders is required for ROS1 mcap! See README for more information')
 
         summ = self.reader.get_summary()
 
@@ -111,7 +112,7 @@ class Converter:
                 # or scheme name is mapped, try to get the schema definition
                 # from ROS or disk
 
-                new_data = get_message_definition(schema_name, self.config.msg_folder)
+                new_data = get_message_definition(schema_name, self.config.msg_folders)
 
                 if new_data is not None:
                     schema_def = new_data
@@ -125,14 +126,15 @@ class Converter:
         for conv_list in self.plugin_conv.values():
             for conv, _out_topic in conv_list:
                 out_schema = conv.output_schema
-                if out_schema in self.schema_list:
+                if out_schema in self.schema_list and not self.use_sourced_msgs:
                     continue
 
-                new_data = get_message_definition(out_schema, self.config.msg_folder)
+                new_data = get_message_definition(out_schema, self.config.msg_folders)
 
                 if new_data is None:
-                    raise ValueError(f'Converter: Output schema "{out_schema}" not found')
+                    raise ValueError(f'Converter: Output schema {out_schema} not found')
                 self.schema_list[out_schema] = self.writer.register_msgdef(out_schema, new_data)
+                conv.set_output_schema(self.schema_list[out_schema])
 
         if self.config.tf_static and TF_SCHEMA_NAME not in self.schema_list:
             # insert tf schema
@@ -268,7 +270,7 @@ class Converter:
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
-            if conv_msg := conv.convert(msg.decoded_message):
+            if conv_msg := conv.convert(msg.decoded_message, channel):
                 # TODO: pass this to process_message?
                 self.writer.write_message(
                     topic=output_topic,
@@ -278,6 +280,9 @@ class Converter:
                     publish_time=message.publish_time,
                     sequence=message.sequence,
                 )
+                
+                # update channel metadata to include any changes made by a plugin 
+                self.summary.channels[channel.id].metadata.update(channel.metadata)
 
         # late remove topics which are required by a plugin
         if topic in self.config.topic.remove:

@@ -1,6 +1,6 @@
 from multiprocessing import cpu_count
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
@@ -78,7 +78,7 @@ class Settings(BaseModel):
     :ivar time_start: Start time of the recording.
     :ivar time_end: End time of the recording.
     :ivar keep_all_static_tf: Keep all static TF frames.
-    :ivar msg_folder: Folder containing message definitions, defaults to ./msgs/.
+    :ivar msg_folders: Folder containing message definitions, defaults to ./msgs/.
     :ivar progress: Show progress bar.
     :ivar save_metadata: If true save the config as attachment in the new created mcap.
     """
@@ -97,7 +97,7 @@ class Settings(BaseModel):
 
     keep_all_static_tf: bool = False
 
-    msg_folder: Path | None = Path('./msgs')
+    msg_folders: Path | None = Path('./msgs')
     plugin_folder: Path | None = Path('./plugins')
 
     progress: bool = True

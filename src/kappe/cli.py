@@ -125,7 +125,7 @@ class KappeCLI:
         topic: SettingTopic | None = None,
         tf_static: SettingTF | None = None,
         msg_schema: SettingSchema | None = None,
-        msg_folder: Path | None = Path('./msgs'),
+        msg_folders: list[Path] | None = [Path('./msgs')],
         point_cloud: dict[str, SettingPointCloud] | None = None,
         time_offset: dict[str, SettingTimeOffset] | None = None,
         plugins: list[SettingPlugin] | None = None,
@@ -144,7 +144,7 @@ class KappeCLI:
             topic: Migrations for topics (remove, rename, etc.).
             tf_static: Migrations for TF (insert, remove).
             msg_schema: Updating or changing a schema.
-            msg_folder: Path to the folder containing .msg files used to change the schema and
+            msg_folders: Paths to the folder containing .msg files used to change the schema and
                 upgrading from ROS1.
             point_cloud: Migrations for point clouds (Update filed, rotate, etc.).
             time_offset: Migrations for time (Add offset, sync with mcap time, etc.).
@@ -183,15 +183,15 @@ class KappeCLI:
         config.time_start = time_start
         config.time_end = time_end
         config.keep_all_static_tf = keep_all_static_tf
-        config.msg_folder = msg_folder
+        config.msg_folders = msg_folders
         config.plugin_folder = plugin_folder
         config.progress = self.progress
         config.save_metadata = save_metadata
 
         # check for msgs folder
-        if msg_folder is not None and not msg_folder.exists():
-            logger.warning('msg_folder does not exist: %s', msg_folder)
-            msg_folder = None
+        for folder in msg_folders:
+            if not folder.exists():
+                logger.warning('msg_folders does not exist: %s', folder)
 
         errors = False
 
