@@ -1,5 +1,4 @@
 import logging
-import struct
 import time
 import warnings
 from collections.abc import Generator, Iterable
@@ -7,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import mcap.exceptions
 from mcap.reader import NonSeekingReader, make_reader
 from mcap.records import Channel, Schema
 from mcap.well_known import Profile, SchemaEncoding
@@ -74,15 +72,8 @@ class Converter:
 
         try:
             self.summary = reader.get_summary()
-        except (
-            mcap.exceptions.EndOfFile,
-            MemoryError,
-            OverflowError,
-            struct.error,
-            UnicodeDecodeError,
-            ValueError,
-        ):
-            logger.warning('Unindexed MCAP, using non seeking reader, CAN BE SLOW!')
+        except Exception:  # noqa: BLE001
+            logger.warning('Unindexed/Broken MCAP, trying to read, CAN BE SLOW!')
 
         if self.summary:
             self.statistics = self.summary.statistics
