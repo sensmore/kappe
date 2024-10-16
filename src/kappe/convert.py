@@ -1,4 +1,5 @@
 import logging
+import struct
 import time
 import warnings
 from collections.abc import Generator, Iterable
@@ -6,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import mcap.exceptions
 from mcap.reader import make_reader
 from mcap.well_known import Profile, SchemaEncoding
 from mcap_ros1.decoder import DecoderFactory as Ros1DecoderFactory
@@ -66,7 +68,17 @@ class Converter:
         if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
             logger.error('msg_folder is required for ROS1 mcap! See README for more information')
 
-        summ = self.reader.get_summary()
+        try:
+            summ = self.reader.get_summary()
+        except (
+            mcap.exceptions.EndOfFile,
+            MemoryError,
+            OverflowError,
+            struct.error,
+            UnicodeDecodeError,
+            ValueError,
+        ):
+            raise ValueError('Unindexed mcap!') from None
 
         if summ is None:
             raise ValueError('Unindexed mcap!')

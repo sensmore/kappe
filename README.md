@@ -50,7 +50,7 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
 
 or
 
-`rye tools install kappe`
+`uv tools install kappe`
 
 ### Usage
 
