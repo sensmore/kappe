@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import mcap.exceptions
-from mcap.reader import make_reader
+from mcap.reader import NonSeekingReader, make_reader
+from mcap.records import Channel, Schema
 from mcap.well_known import Profile, SchemaEncoding
 from mcap_ros1.decoder import DecoderFactory as Ros1DecoderFactory
 from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
@@ -26,7 +27,7 @@ from kappe.utils.msg_def import get_message_definition
 from kappe.writer import WrappedDecodedMessage, WrappedWriter
 
 if TYPE_CHECKING:
-    from mcap.records import Schema, Statistics
+    from mcap.records import Statistics
     from mcap.summary import Summary
 
 logger = logging.getLogger(__name__)
@@ -61,15 +62,18 @@ class Converter:
         self.f_reader = input_path.open('rb')
         self.f_writer = output_path.open('wb')
 
-        self.reader = make_reader(self.f_reader)
+        reader = make_reader(self.f_reader)
         self.writer = WrappedWriter(self.f_writer)
 
-        self.mcap_header = self.reader.get_header()
+        self.mcap_header = reader.get_header()
         if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
             logger.error('msg_folder is required for ROS1 mcap! See README for more information')
 
+        self.summary: Summary | None = None
+        self.statistics: Statistics | None = None
+
         try:
-            summ = self.reader.get_summary()
+            self.summary = reader.get_summary()
         except (
             mcap.exceptions.EndOfFile,
             MemoryError,
@@ -78,60 +82,30 @@ class Converter:
             UnicodeDecodeError,
             ValueError,
         ):
-            raise ValueError('Unindexed mcap!') from None
+            logger.warning('Unindexed MCAP, using non seeking reader, CAN BE SLOW!')
 
-        if summ is None:
-            raise ValueError('Unindexed mcap!')
-
-        self.summary: Summary = summ
-        if self.summary.statistics is None:
-            raise ValueError('Statistics not found in mcap!')
-
-        self.statistics: Statistics = self.summary.statistics
+        if self.summary:
+            self.statistics = self.summary.statistics
 
         self.tf_static_channel_id: int | None = None
 
         # mapping of schema name to schema
         self.schema_list: dict[str, Schema] = {}
+        # Set of schema ids already processed
+        self.schema_original: dict[int, Schema] = {}
+        # Set of channel ids already processed
+        self.channel_seen: set[int] = set()
+
+        self.tf_inserted = False
+
         self.init_schema()
 
         self.init_channel()
 
     def init_schema(self) -> None:
-        for schema in self.summary.schemas.values():
-            if schema.encoding not in [SchemaEncoding.ROS1, SchemaEncoding.ROS2]:
-                logger.warning(
-                    'Schema "%s" has unsupported encoding "%s", skipping.',
-                    schema.name,
-                    schema.encoding,
-                )
-                continue
-
-            schema_name = schema.name
-            schema_def = schema.data.decode()
-
-            # replace schema name if mapping is defined
-            schema_name = self.config.msg_schema.mapping.get(schema_name, schema_name)
-
-            if schema_name in self.config.msg_schema.definition:
-                schema_def = self.config.msg_schema.definition[schema_name]
-            elif (
-                schema.encoding == SchemaEncoding.ROS1
-                or schema_name in self.config.msg_schema.mapping
-            ):
-                # if schema is not defined in the config, and it is a ROS1 schema or
-                # or scheme name is mapped, try to get the schema definition
-                # from ROS or disk
-
-                new_data = get_message_definition(schema_name, self.config.msg_folder)
-
-                if new_data is not None:
-                    schema_def = new_data
-                else:
-                    logger.warning('Schema "%s" not found, skipping.', schema.name)
-                    continue
-
-            self.schema_list[schema.name] = self.writer.register_msgdef(schema_name, schema_def)
+        if self.summary is not None:
+            for schema in self.summary.schemas.values():
+                self.add_schema(schema)
 
         # Register schemas for converters
         for conv_list in self.plugin_conv.values():
@@ -153,65 +127,116 @@ class Converter:
                 TF_SCHEMA_TEXT,
             )
 
+    def add_schema(self, schema: Schema) -> None:
+        if schema.id in self.schema_original:
+            # schema already processed
+            return
+
+        self.schema_original[schema.id] = schema
+
+        if schema.encoding not in [SchemaEncoding.ROS1, SchemaEncoding.ROS2]:
+            logger.warning(
+                'Schema "%s" has unsupported encoding "%s", skipping.',
+                schema.name,
+                schema.encoding,
+            )
+            return
+
+        schema_name = schema.name
+        schema_def = schema.data.decode()
+
+        # replace schema name if mapping is defined
+        schema_name = self.config.msg_schema.mapping.get(schema_name, schema_name)
+
+        if schema_name in self.config.msg_schema.definition:
+            schema_def = self.config.msg_schema.definition[schema_name]
+        elif (
+            schema.encoding == SchemaEncoding.ROS1 or schema_name in self.config.msg_schema.mapping
+        ):
+            # if schema is not defined in the config, and it is a ROS1 schema or
+            # or scheme name is mapped, try to get the schema definition
+            # from ROS or disk
+
+            new_data = get_message_definition(schema_name, self.config.msg_folder)
+
+            if new_data is not None:
+                schema_def = new_data
+            else:
+                logger.warning('Schema "%s" not found, skipping.', schema.name)
+                return
+
+        self.schema_list[schema.name] = self.writer.register_msgdef(schema_name, schema_def)
+
     def init_channel(self) -> None:
-        for channel in self.summary.channels.values():
-            metadata = channel.metadata
-            topic = channel.topic
-            org_schema: Schema = self.summary.schemas[channel.schema_id]
-            if org_schema.name not in self.schema_list:
-                logger.warning(
-                    'Channel "%s" missing schema "%s", skipping.',
-                    channel.topic,
-                    org_schema.name,
-                )
-                continue
-
-            # skip removed topics
-            if channel.topic in self.config.topic.remove:
-                continue
-
-            schema_id: int = self.schema_list[org_schema.name].id
-
-            topic = self.config.topic.mapping.get(topic, topic)
-            # Workaround, to set metadata for the channel
-            if topic not in self.writer._channel_ids:  # noqa: SLF001
-                if self.mcap_header.profile == Profile.ROS1:
-                    qos = Qos()
-                    qos.durability = (
-                        DurabilityPolicy.TRANSIENT_LOCAL
-                        if metadata.get('latching')
-                        else DurabilityPolicy.VOLATILE
-                    )
-
-                    metadata = {'offered_qos_profiles': dump_qos_list(qos)}
-
-                # TODO: make QoS configurable
-                # TODO: add QoS enums
-                if topic in ['/tf_static']:
-                    qos = Qos()
-                    if 'offered_qos_profiles' in metadata:
-                        qos = parse_qos_list(metadata['offered_qos_profiles'])[0]
-                    qos.durability = DurabilityPolicy.VOLATILE
-                    metadata['offered_qos_profiles'] = dump_qos_list(qos)
-
-                channel_id = self.writer._writer.register_channel(  # noqa: SLF001
-                    topic=topic,
-                    message_encoding='cdr',
-                    schema_id=schema_id,
-                    metadata=metadata,
-                )
-                self.writer._channel_ids[topic] = channel_id  # noqa: SLF001
+        if self.summary is not None:
+            for channel in self.summary.channels.values():
+                self.add_channel(channel)
 
         if self.config.tf_static and '/tf_static' not in self.writer._channel_ids:  # noqa: SLF001
             # insert tf schema
-            channel_id = self.writer._writer.register_channel(  # noqa: SLF001
+            self.writer._writer.register_channel(  # noqa: SLF001
                 topic='/tf_static',
                 message_encoding='cdr',
                 schema_id=self.schema_list[TF_SCHEMA_NAME].id,
             )
 
-    def get_selected_channels(self) -> set[str]:
+    def add_channel(self, channel: Channel) -> None:
+        if channel.id in self.channel_seen:
+            # channel already processed
+            return
+        self.channel_seen.add(channel.id)
+
+        metadata = channel.metadata
+        topic = channel.topic
+        org_schema: Schema = self.schema_original[channel.schema_id]
+        if org_schema.name not in self.schema_list:
+            logger.warning(
+                'Channel "%s" missing schema "%s", skipping.',
+                channel.topic,
+                org_schema.name,
+            )
+            return
+
+        # skip removed topics
+        if channel.topic in self.config.topic.remove:
+            return
+
+        schema_id: int = self.schema_list[org_schema.name].id
+
+        topic = self.config.topic.mapping.get(topic, topic)
+        # Workaround, to set metadata for the channel
+        if topic not in self.writer._channel_ids:  # noqa: SLF001
+            if self.mcap_header.profile == Profile.ROS1:
+                qos = Qos()
+                qos.durability = (
+                    DurabilityPolicy.TRANSIENT_LOCAL
+                    if metadata.get('latching')
+                    else DurabilityPolicy.VOLATILE
+                )
+
+                metadata = {'offered_qos_profiles': dump_qos_list(qos)}
+
+            # TODO: make QoS configurable
+            # TODO: add QoS enums
+            if topic in ['/tf_static']:
+                qos = Qos()
+                if 'offered_qos_profiles' in metadata:
+                    qos = parse_qos_list(metadata['offered_qos_profiles'])[0]
+                qos.durability = DurabilityPolicy.VOLATILE
+                metadata['offered_qos_profiles'] = dump_qos_list(qos)
+
+            channel_id = self.writer._writer.register_channel(  # noqa: SLF001
+                topic=topic,
+                message_encoding='cdr',
+                schema_id=schema_id,
+                metadata=metadata,
+            )
+            self.writer._channel_ids[topic] = channel_id  # noqa: SLF001
+
+    def get_selected_channels(self) -> set[str] | None:
         """Get a list of channels that should be converted."""
+        if self.summary is None:
+            return None
         filtered_channels: set[str] = set()
         for channel in self.summary.channels.values():
             keep = True
@@ -256,26 +281,55 @@ class Converter:
                 stacklevel=1,
             )
 
-        self.reader = make_reader(
-            self.f_reader,
-            decoder_factories=[decoder],
-        )
+        if self.summary:
+            reader = make_reader(
+                self.f_reader,
+                decoder_factories=[decoder],
+            )
+        else:
+            reader = NonSeekingReader(self.f_reader)
 
         decoder_cache = {}
 
-        for schema, channel, message in self.reader.iter_messages(
-            topics=topics,
-            start_time=int(start_time * 1e9) if start_time else None,
-            end_time=int(end_time * 1e9) if end_time else None,
-        ):
-            yield WrappedDecodedMessage(schema, channel, message, decoder_cache=decoder_cache)
+        try:
+            for schema, channel, message in reader.iter_messages(
+                topics=topics,
+                start_time=int(start_time * 1e9) if start_time else None,
+                end_time=int(end_time * 1e9) if end_time else None,
+                log_time_order=False,
+            ):
+                yield WrappedDecodedMessage(schema, channel, message, decoder_cache=decoder_cache)
+        except Exception as e:
+            if self.summary is None:
+                logger.info('Unindex mcap file, stopped at first error: %s', e)
+            else:
+                raise
 
-    def process_message(self, msg: WrappedDecodedMessage) -> None:
+    def process_message(self, msg: WrappedDecodedMessage) -> None:  # noqa: PLR0912
         schema = msg.schema
         channel = msg.channel
         message = msg.message
         schema_name = schema.name
         topic = channel.topic
+
+        if schema:
+            self.add_schema(schema)
+        self.add_channel(channel)
+
+        if not self.tf_inserted:
+            self.tf_inserted = True
+            tf_time = message.log_time
+            if tf_offset := (self.config.time_offset.get('default')):
+                tf_time += int(tf_offset.sec * 1e9 + tf_offset.nanosec)
+            insert_tf = tf_static_insert(self.config.tf_static, tf_time)
+            if insert_tf is not None:
+                self.writer.write_message(
+                    topic='/tf_static',
+                    schema=self.schema_list[TF_SCHEMA_NAME],
+                    message=insert_tf,
+                    log_time=tf_time,
+                    publish_time=tf_time,
+                )
 
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
@@ -335,6 +389,11 @@ class Converter:
         )
 
     def collect_tf_static(self, start_time_sec: float) -> None:
+        if self.summary is None:
+            raise ValueError('Cannot collect tf_static without summary')
+        if self.statistics is None:
+            raise ValueError('Cannot collect tf_static without summary')
+
         start_time_ns = int(start_time_sec * 1e9)
         start_time_part_sec = int(start_time_sec)
         start_time_part_ns = int((start_time_sec - start_time_part_sec) * 1e9)
@@ -385,22 +444,25 @@ class Converter:
             if count == tf_static_amount:
                 break
 
-    def process_file(self, tqdm_idx: int = 0) -> None:
-        start_time = self.statistics.message_start_time / 1e9
-        if self.config.time_start is not None:
-            start_time = max(start_time, self.config.time_start)
+    def process_file(self, tqdm_idx: int = 0) -> None:  # noqa: PLR0912
+        start_time = None
+        end_time = None
+        duration = None
+        if self.statistics:
+            start_time = self.statistics.message_start_time / 1e9
+            if self.config.time_start is not None:
+                start_time = max(start_time, self.config.time_start)
 
-        start_time_ns = int(start_time * 1e9)
+            end_time = self.statistics.message_end_time / 1e9
+            if self.config.time_end is not None:
+                conf_end_time = self.config.time_end
+                if conf_end_time < 100000000:
+                    conf_end_time = float(start_time + conf_end_time)
+                end_time = min(end_time, conf_end_time)
+            duration = end_time - start_time
 
-        end_time = self.statistics.message_end_time / 1e9
-        if self.config.time_end is not None:
-            conf_end_time = self.config.time_end
-            if conf_end_time < 100000000:
-                conf_end_time = float(start_time + conf_end_time)
-            end_time = min(end_time, conf_end_time)
-
-        if self.config.keep_all_static_tf:
-            self.collect_tf_static(start_time)
+            if self.config.keep_all_static_tf:
+                self.collect_tf_static(start_time)
 
         filtered_channels = self.get_selected_channels()
 
@@ -412,39 +474,46 @@ class Converter:
         if msg_iter is None:
             raise ValueError('msg_iter is None')
 
-        logger.info(
-            'Topics: %d, filtered topics: %d',
-            len(self.summary.channels),
-            len(filtered_channels),
-        )
+        if filtered_channels and self.summary:
+            logger.info(
+                'Topics: %d, filtered topics: %d',
+                len(self.summary.channels),
+                len(filtered_channels),
+            )
         logger.debug('Filtered topics: %s', filtered_channels)
 
-        duration = end_time - start_time
-
-        # insert tf_static messages at the beginning of the file
-        tf_time = start_time_ns
-        if offset := (self.config.time_offset.get('default')):
-            tf_time += int(offset.sec * 1e9 + offset.nanosec)
-        insert_tf = tf_static_insert(self.config.tf_static, tf_time)
-        if insert_tf is not None:
-            self.writer.write_message(
-                topic='/tf_static',
-                schema=self.schema_list[TF_SCHEMA_NAME],
-                message=insert_tf,
-                log_time=tf_time,
-                publish_time=tf_time,
-            )
         with tqdm(
             total=duration,
             position=tqdm_idx,
             desc=f'{self.input_path.name}',
-            unit='secs',
-            bar_format='{l_bar}{bar}| {n:.02f}/{total:.02f} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',  # noqa: E501
+            unit='secs' if duration else 'msgs',
+            bar_format='{l_bar}{bar}| {n:.02f}/{total:.02f} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'  # noqa: E501
+            if duration
+            else None,
             disable=not self.config.progress,
         ) as pbar:
             for msg in msg_iter:
                 message = msg.message
-                pbar.update((message.log_time / 1e9 - start_time) - pbar.n)
+                log_time = message.log_time
+                if start_time is None:
+                    start_time = log_time / 1e9
+
+                if self.config.time_start and self.config.time_start * 1e9 > log_time:
+                    continue
+                if self.config.time_end:
+                    if (
+                        self.config.time_end < 100000000
+                        and (start_time + self.config.time_end) * 1e9 < log_time
+                    ):
+                        pass
+                    elif self.config.time_end * 1e9 < log_time:
+                        break
+
+                if duration is not None:
+                    pbar.update((log_time / 1e9 - start_time) - pbar.n)
+                else:
+                    pbar.update(1)
+
                 self.process_message(msg)
 
     def finish(self) -> None:
