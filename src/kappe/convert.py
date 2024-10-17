@@ -287,7 +287,9 @@ class Converter:
                 topics=topics,
                 start_time=int(start_time * 1e9) if start_time else None,
                 end_time=int(end_time * 1e9) if end_time else None,
-                log_time_order=False,
+                # set to true if summary is None,
+                # otherwise the mcap is read into ram for some reason
+                log_time_order=self.summary is not None,
             ):
                 yield WrappedDecodedMessage(schema, channel, message, decoder_cache=decoder_cache)
         except Exception as e:
