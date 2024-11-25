@@ -359,6 +359,9 @@ class Converter:
         if msg_schema is None:
             return
 
+        if self.config.tf_static.remove_tf_static and topic == '/tf_static':
+            return
+
         if topic in ['/tf', '/tf_static']:
             if not tf_remove(self.config.tf_static, msg):
                 # remove empty tf messages

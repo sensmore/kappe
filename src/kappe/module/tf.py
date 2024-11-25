@@ -109,6 +109,7 @@ class SettingTF(BaseModel):
     """
 
     remove: list[str] | None = None
+    remove_tf_static: bool = False
     insert: list[SettingTFInsert] | None = None
 
 
