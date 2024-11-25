@@ -52,6 +52,10 @@ or
 
 `uv tools install kappe`
 
+or
+
+`uvx kappe`
+
 ### Usage
 
 Create a yaml config file containing the migrations you want to perform.

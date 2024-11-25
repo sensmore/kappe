@@ -1,4 +1,5 @@
 import logging
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -90,7 +91,7 @@ def convert_process(  # noqa: PLR0912
         return
 
     logger.info('Using %d threads', config.general.threads)
-    if config.general.threads == 0:
+    if config.general.threads == 0 or len(tasks) == 1:
         for t in tasks:
             convert_worker(t)
     else:
@@ -268,6 +269,10 @@ class KappeCLI:
         )
 
         cutter(mcap, output, config)
+
+    def version(self) -> None:
+        print('Kappe:  ', __version__)  # noqa: T201
+        print('Python: ', sys.version)  # noqa: T201
 
 
 def main() -> None:

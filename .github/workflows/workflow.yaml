@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: 'Jobs'
+        description: "Jobs"
         required: true
-        default: 'lint'
+        default: "lint"
         type: choice
         options:
           - lint
@@ -32,9 +32,27 @@ jobs:
       - uses: pre-commit/action@v3.0.0
         id: pre_commit
 
+  smoke_test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: [3.10, 3.11, 3.12, 3.13]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - run: uv run -p ${{ matrix.version }} ./src/kappe/cli.py version
+
   build:
     if: github.event_name == 'release' || github.event.inputs.job == 'build'
-    needs: lint
+    needs:
+      - lint
+      - smoke_test
 
     runs-on: ubuntu-latest
 
