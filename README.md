@@ -196,6 +196,13 @@ tf_static:
     - other_frame
 ```
 
+Or remove all transforms by using the string "all":
+
+```yaml
+tf_static:
+  remove: all
+```
+
 #### Insert Static Transform
 
 > Rotation can be specified in `euler_deg` or `quaternion`
