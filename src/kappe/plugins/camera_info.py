@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from kappe.plugin import ConverterPlugin
 
@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class InsertCameraInfo(ConverterPlugin):
-    def __init__(self, *, camera_info: Dict[str, Any]) -> None:
+    def __init__(self, *, camera_info: dict[str, Any]) -> None:
         """Initialize the camera info plugin with the camera parameters.
         
         Args:
@@ -31,7 +31,19 @@ class InsertCameraInfo(ConverterPlugin):
             Updated camera info message with new calibration parameters
         """
         # Start with a copy of the original message
-        new_msg = dict(ros_msg)
+        new_msg = {
+            'header': ros_msg.header,
+            'height': ros_msg.height,
+            'width': ros_msg.width,
+            'distortion_model': ros_msg.distortion_model,
+            'd': ros_msg.d,
+            'k': ros_msg.k,
+            'r': ros_msg.r,
+            'p': ros_msg.p,
+            'binning_x': ros_msg.binning_x,
+            'binning_y': ros_msg.binning_y,
+            'roi': ros_msg.roi,
+        }
 
         # Update only the fields that are specified in the config
         if 'image_height' in self.camera_info:
