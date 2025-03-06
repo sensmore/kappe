@@ -104,11 +104,11 @@ class SettingTF(BaseModel):
     """
     TF settings.
 
-    :ivar remove: List of child frame IDs to remove.
+    :ivar remove: List of child frame IDs to remove, or "all" to remove all transforms.
     :ivar insert: List of transforms to insert.
     """
 
-    remove: list[str] | None = None
+    remove: list[str] | str | None = None
     remove_tf_static: bool = False
     insert: list[SettingTFInsert] | None = None
 
@@ -160,8 +160,13 @@ def tf_static_insert(cfg: SettingTF, stamp_ns: int) -> None | Any:
 def tf_remove(cfg: SettingTF, msg: WrappedDecodedMessage) -> bool:
     ros_msg = msg.decoded_message
     if cfg.remove:
-        ros_msg.transforms = [
-            tf for tf in ros_msg.transforms if tf.child_frame_id not in cfg.remove
-        ]
+        if isinstance(cfg.remove, str) and cfg.remove.lower() == 'all':
+            ros_msg.transforms = []
+        elif isinstance(cfg.remove, list):
+            ros_msg.transforms = [
+                tf for tf in ros_msg.transforms if tf.child_frame_id not in cfg.remove
+            ]
+        else:
+            raise ValueError(f'Invalid value for remove: {cfg.remove}')
         return len(ros_msg.transforms) > 0
     return True
