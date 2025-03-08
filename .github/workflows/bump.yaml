@@ -22,22 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install hatch
-        run: python3 -m pip install --upgrade hatch
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
 
       - name: Bump, commit, tag and push
         id: bump
         run: |
           git config --global user.name 'autobump'
           git config --global user.email 'autobump'
-          VERSION=`hatch version`
-          hatch version ${{ inputs.version }}
-          NEW_VERSION=`hatch version`
+          VERSION=`uvx hatch version`
+          uvx hatch version ${{ inputs.version }}
+          NEW_VERSION=`uvx hatch version`
           git add ./src/kappe/__init__.py
           git commit -m "Bump version: $VERSION → $NEW_VERSION"
           git tag "v$NEW_VERSION"

@@ -267,7 +267,7 @@ class Converter:
             decoder = Ros1DecoderFactory()
         elif self.mcap_header.profile != Profile.ROS2:
             warnings.warn(
-                f'Unsupported profile: {self.mcap_header.profile}, ' 'trying to read as ROS2',
+                f'Unsupported profile: {self.mcap_header.profile}, trying to read as ROS2',
                 RuntimeWarning,
                 stacklevel=1,
             )
