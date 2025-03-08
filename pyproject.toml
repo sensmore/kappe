@@ -56,7 +56,6 @@ exclude = ['msgs']
 select = ['ALL']
 
 ignore = [
-    'ANN101',  # missing-type-self
     'ANN401',  # dynamically-typed-expression
     'C901',    # complex-structure
     'D',       # pydocstyle
