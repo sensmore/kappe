@@ -9,11 +9,14 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
 ]
 
 dependencies = [
-    "mcap>=0.3.0",
+    "mcap>=1.0.2",
     "mcap-ros1-support>=0.6.0",
     "mcap-ros2-support>=0.3.0",
     "numpy",
@@ -21,7 +24,7 @@ dependencies = [
     "tqdm",
     "pyyaml>=6.0.1",
     "scipy>=1.11.1",
-    "jsonargparse[signatures]>=4.25.0,<4.29.0",
+    "jsonargparse[signatures]>=4.35.0",
     "pointcloud2>=0.2.1",
     "pydantic-yaml>=1.2.1",
 ]
