@@ -247,7 +247,7 @@ time_end:    1676549554.0
 
 ### Plugins
 
-Kappe can be extended with plugins, for example to compress images. Source code for plugins can be found in the [plugins](./src/kappe/), additional plugins can be loaded from `./plugins`.
+Kappe can be extended with plugins, for example to compress images or update camera calibration. Source code for plugins can be found in the [plugins](./src/kappe/), additional plugins can be loaded from `./plugins`.
 
 ```yaml
 plugins:
@@ -256,6 +256,66 @@ plugins:
     output_topic: /compressed/image
     settings:
       quality: 50
+
+  - name: camera_info.InsertCameraInfo
+    input_topic: /camera/camera_info
+    output_topic: /camera/camera_info  # Must remove /camera/camera_info topic (see above)
+    settings:
+      camera_info:  # https://wiki.ros.org/camera_calibration_parsers#File_formats
+        image_height: 1080
+        image_width: 1920
+        camera_matrix:
+          rows: 3
+          cols: 3
+          data:
+            - 1070.0691945956082
+            - 0.0
+            - 783.0877059808756
+            - 0.0
+            - 1082.911613625781
+            - 544.1453400605368
+            - 0.0
+            - 0.0
+            - 1.0
+        distortion_model: plumb_bob
+        distortion_coefficients:
+          rows: 1
+          cols: 5
+          data:
+            - -0.317162192616218
+            - 0.09863188458267099
+            - 0.009339815359941763
+            - -0.000817443220874783
+            - 0.0
+        rectification_matrix:
+          rows: 3
+          cols: 3
+          data:
+            - 1.0
+            - 0.0
+            - 0.0
+            - 0.0
+            - 1.0
+            - 0.0
+            - 0.0
+            - 0.0
+            - 1.0
+        projection_matrix:
+          rows: 3
+          cols: 4
+          data:
+            - 1070.0691945956082
+            - 0.0
+            - 783.0877059808756
+            - 0.0
+            - 0.0
+            - 1082.911613625781
+            - 544.1453400605368
+            - 0.0
+            - 0.0
+            - 0.0
+            - 1.0
+            - 0.0
 ```
 
 ### ROS1 to ROS2 conversion
