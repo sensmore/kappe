@@ -130,7 +130,7 @@ signatures = [
 
 [[package]]
 name = "kappe"
-version = "0.16.2"
+version = "0.18.0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonargparse", extra = ["signatures"] },
