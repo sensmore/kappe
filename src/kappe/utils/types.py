@@ -1,3 +1,4 @@
+# noqa: A005
 class ClassDict(dict):
     """Class to allow attribute access to dict items."""
 
