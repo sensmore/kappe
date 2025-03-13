@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class InsertCameraInfo(ConverterPlugin):
     def __init__(self, *, camera_info: dict[str, Any]) -> None:
         """Initialize the camera info plugin with the camera parameters.
-        
+
         Args:
             camera_info: Dictionary containing the camera calibration parameters
                 in ROS camera_info format. Only specified parameters will be updated.
@@ -20,13 +20,13 @@ class InsertCameraInfo(ConverterPlugin):
 
     def convert(self, ros_msg: Any) -> Any:
         """Update calibration data in the camera_info message.
-        
-        Preserves all existing message fields and only updates calibration 
+
+        Preserves all existing message fields and only updates calibration
         parameters that are specified in the config.
-        
+
         Args:
             ros_msg: Input ROS message (sensor_msgs/CameraInfo)
-            
+
         Returns:
             Updated camera info message with new calibration parameters
         """
@@ -68,4 +68,4 @@ class InsertCameraInfo(ConverterPlugin):
     @property
     def output_schema(self) -> str:
         """Return the output message type."""
-        return 'sensor_msgs/msg/CameraInfo' 
+        return 'sensor_msgs/msg/CameraInfo'
