@@ -35,6 +35,33 @@ class CompressImage(ConverterPlugin):
         return 'sensor_msgs/msg/CompressedImage'
 
 
+class CropImage(ConverterPlugin):
+    def __init__(self, *, x_min: int, x_max: int, y_min: int, y_max: int) -> None:
+        super().__init__()
+        self.x_min = x_min
+        self.x_max = x_max
+        self.y_min = y_min
+        self.y_max = y_max
+
+        self.logger.debug('x_min=%d, x_max=%d, y_min=%d, y_max=%d', x_min, x_max, y_min, y_max)
+
+    def convert(self, ros_msg: Any) -> Any:
+        stream = BytesIO(ros_msg.data)
+        output = BytesIO()
+        img = Image.open(stream)
+        img = img.crop((self.x_min, self.y_min, self.x_max, self.y_max))
+        img.save(output, format='jpeg', optimize=True)
+        return {
+            'header': ros_msg.header,
+            'format': 'jpeg',
+            'data': output.getvalue(),
+        }
+
+    @property
+    def output_schema(self) -> str:
+        return 'sensor_msgs/msg/CompressedImage'
+
+
 class ReCompress(ConverterPlugin):
     def __init__(self, *, quality: int = 10) -> None:
         self.quality = quality
