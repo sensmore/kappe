@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version < '3.13'",
@@ -112,14 +113,14 @@ wheels = [
 
 [[package]]
 name = "jsonargparse"
-version = "4.28.0"
+version = "4.39.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/ee/84ddf56631ae11c7751a1e5ab543803c6c8f7857d41f91ee01b1b886f0eb/jsonargparse-4.28.0.tar.gz", hash = "sha256:ac835a290ef18cc2a5309e6bfa8ada9c5d63f46ff18701583fc8f3e95314679c", size = 175359 }
+sdist = { url = "https://files.pythonhosted.org/packages/87/10/c77a54b0d7f3f7a3263b0f2d5e5697bce417dd08bc483a34369420456d10/jsonargparse-4.39.0.tar.gz", hash = "sha256:d72f9e84c251aeac6cd3cd5d91212f4a7c47be9a58e642dd3bce4b990543b360", size = 201775 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2a/0a/07d4b188de1b0016452a2496ee9deb0eb944e0b31fb01f04a7153478589b/jsonargparse-4.28.0-py3-none-any.whl", hash = "sha256:9dcda241349547e8035c630d51de73b8b4ba67bdc2b014d7f76734d404e82518", size = 195327 },
+    { url = "https://files.pythonhosted.org/packages/99/68/fe1c9ce7acb2155e2d94777dd906a08ba2cc60df2568cdb18c0fed94847c/jsonargparse-4.39.0-py3-none-any.whl", hash = "sha256:62ba3d5a66518b865252cfa285988e2ef8d0339de3cd2ad25f98465dc45d41f1", size = 223002 },
 ]
 
 [package.optional-dependencies]
@@ -130,7 +131,6 @@ signatures = [
 
 [[package]]
 name = "kappe"
-version = "0.18.0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonargparse", extra = ["signatures"] },
@@ -148,8 +148,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "jsonargparse", extras = ["signatures"], specifier = ">=4.25.0,<4.29.0" },
-    { name = "mcap", specifier = ">=0.3.0" },
+    { name = "jsonargparse", extras = ["signatures"], specifier = ">=4.35.0" },
+    { name = "mcap", specifier = ">=1.0.2" },
     { name = "mcap-ros1-support", specifier = ">=0.6.0" },
     { name = "mcap-ros2-support", specifier = ">=0.3.0" },
     { name = "numpy" },
@@ -541,7 +541,7 @@ name = "tqdm"
 version = "4.66.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "platform_system == 'Windows'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/58/83/6ba9844a41128c62e810fddddd72473201f3eacde02046066142a2d96cc5/tqdm-4.66.5.tar.gz", hash = "sha256:e1020aef2e5096702d8a025ac7d16b1577279c9d63f8375b63083e9a5f0fcbad", size = 169504 }
 wheels = [

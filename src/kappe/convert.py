@@ -211,7 +211,7 @@ class Converter:
             # TODO: add QoS enums
             if topic in ['/tf_static']:
                 qos = Qos()
-                if 'offered_qos_profiles' in metadata:
+                if metadata.get('offered_qos_profiles'):
                     qos = parse_qos_list(metadata['offered_qos_profiles'])[0]
                 qos.durability = DurabilityPolicy.VOLATILE
                 metadata['offered_qos_profiles'] = dump_qos_list(qos)
