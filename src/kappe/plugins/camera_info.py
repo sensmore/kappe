@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class UpdateCameraInfo(ConverterPlugin):
     """Plugin to update existing camera calibration parameters in CameraInfo messages.
-    
+
     This plugin modifies existing sensor_msgs/CameraInfo messages by updating
     only the calibration parameters specified in the configuration, preserving
     all other message fields.
@@ -22,7 +22,7 @@ class UpdateCameraInfo(ConverterPlugin):
                 in ROS camera_info format. Only specified parameters will be updated.
                 Expected keys:
                 - image_height: Image height in pixels
-                - image_width: Image width in pixels  
+                - image_width: Image width in pixels
                 - distortion_model: Distortion model name (e.g., 'plumb_bob', 'equidistant')
                 - distortion_coefficients: Dict with 'data' key containing distortion coefficients
                 - camera_matrix: Dict with 'data' key containing 3x3 camera matrix (flattened)
@@ -88,7 +88,7 @@ class UpdateCameraInfo(ConverterPlugin):
 
 class InsertCameraInfo(ConverterPlugin):
     """Plugin to create CameraInfo messages from Image messages.
-    
+
     This plugin is designed for MCAP files that contain camera images but lack
     corresponding CameraInfo messages. It creates new CameraInfo messages using
     the image header information and configured calibration parameters.
@@ -146,13 +146,11 @@ class InsertCameraInfo(ConverterPlugin):
             'p': [0.0] * 12,  # 3x4 projection matrix (flattened)
             'binning_x': 0,
             'binning_y': 0,
-            'roi': getattr(ros_msg, 'roi', {
-                'x_offset': 0,
-                'y_offset': 0,
-                'height': 0,
-                'width': 0,
-                'do_rectify': False
-            }),
+            'roi': getattr(
+                ros_msg,
+                'roi',
+                {'x_offset': 0, 'y_offset': 0, 'height': 0, 'width': 0, 'do_rectify': False},
+            ),
         }
 
         # Override with configured values
@@ -183,13 +181,14 @@ class InsertCameraInfo(ConverterPlugin):
         if 'roi' in self.camera_info:
             new_msg['roi'] = self.camera_info['roi']
 
-        self.logger.debug('Created CameraInfo message for frame: %s', 
-                         getattr(new_msg['header'], 'frame_id', 'unknown'))
-        
+        self.logger.debug(
+            'Created CameraInfo message for frame: %s',
+            getattr(new_msg['header'], 'frame_id', 'unknown'),
+        )
+
         return new_msg
 
     @property
     def output_schema(self) -> str:
         """Return the output message type."""
         return 'sensor_msgs/msg/CameraInfo'
-
