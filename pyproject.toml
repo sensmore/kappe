@@ -80,3 +80,8 @@ inline-quotes = 'single'
 
 [tool.ruff.format]
 quote-style = "single"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.11",
+]

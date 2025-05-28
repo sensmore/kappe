@@ -146,11 +146,7 @@ class InsertCameraInfo(ConverterPlugin):
             'p': [0.0] * 12,  # 3x4 projection matrix (flattened)
             'binning_x': 0,
             'binning_y': 0,
-            'roi': getattr(
-                ros_msg,
-                'roi',
-                {'x_offset': 0, 'y_offset': 0, 'height': 0, 'width': 0, 'do_rectify': False},
-            ),
+            'roi': {'x_offset': 0, 'y_offset': 0, 'height': 0, 'width': 0, 'do_rectify': False},
         }
 
         # Override with configured values
