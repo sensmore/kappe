@@ -376,10 +376,12 @@ class Converter:
             time_offset(offset, msg)
 
         # Apply frame_id mapping
-        if new_frame_id := self.config.frame_id_mapping.get(topic):
-            if hasattr(msg.decoded_message, 'header'):
-                if hasattr(msg.decoded_message.header, 'frame_id'):
-                    msg.decoded_message.header.frame_id = new_frame_id
+        if (
+            new_frame_id := self.config.frame_id_mapping.get(topic) and
+            hasattr(msg.decoded_message, 'header') and
+            hasattr(msg.decoded_message.header, 'frame_id')
+        ):
+            msg.decoded_message.header.frame_id = new_frame_id
 
         self.writer.write_message(
             topic=self.config.topic.mapping.get(topic, topic),
