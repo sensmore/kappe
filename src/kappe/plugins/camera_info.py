@@ -78,6 +78,11 @@ class UpdateCameraInfo(ConverterPlugin):
         if 'projection_matrix' in self.camera_info:
             new_msg['p'] = self.camera_info['projection_matrix']['data']
 
+        self.logger.debug(
+            'Updated CameraInfo message: %s',
+            new_msg,
+        )
+
         return new_msg
 
     @property
@@ -178,8 +183,8 @@ class InsertCameraInfo(ConverterPlugin):
             new_msg['roi'] = self.camera_info['roi']
 
         self.logger.debug(
-            'Created CameraInfo message for frame: %s',
-            getattr(new_msg['header'], 'frame_id', 'unknown'),
+            'Created CameraInfo message: %s',
+            new_msg,
         )
 
         return new_msg
