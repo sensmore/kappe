@@ -136,6 +136,7 @@ class KappeCLI:
         keep_all_static_tf: bool = False,
         save_metadata: bool = True,
         overwrite: bool = False,
+        frame_id_mapping: dict[str, str] | None = None,
     ) -> None:
         """Convert mcap(s) with changing, filtering, converting, ... data.
 
@@ -143,6 +144,7 @@ class KappeCLI:
             input: Input mcap or folder of mcaps.
             general: General settings (threads, etc.).
             topic: Migrations for topics (remove, rename, etc.).
+            frame_id_mapping: Mapping of topic names to new frame_id values. Applied globally.
             tf_static: Migrations for TF (insert, remove).
             msg_schema: Updating or changing a schema.
             msg_folder: Path to the folder containing .msg files used to change the schema and
@@ -162,6 +164,8 @@ class KappeCLI:
             general = SettingGeneral()
         if topic is None:
             topic = SettingTopic()
+        if frame_id_mapping is None: # Added
+            frame_id_mapping = {}   # Added
         if tf_static is None:
             tf_static = SettingTF()
         if msg_schema is None:
@@ -188,6 +192,7 @@ class KappeCLI:
         config.plugin_folder = plugin_folder
         config.progress = self.progress
         config.save_metadata = save_metadata
+        config.frame_id_mapping = frame_id_mapping # Added
 
         # check for msgs folder
         if msg_folder is not None and not msg_folder.exists():
