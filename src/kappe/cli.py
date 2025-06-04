@@ -164,8 +164,8 @@ class KappeCLI:
             general = SettingGeneral()
         if topic is None:
             topic = SettingTopic()
-        if frame_id_mapping is None: # Added
-            frame_id_mapping = {}   # Added
+        if frame_id_mapping is None:
+            frame_id_mapping = {}
         if tf_static is None:
             tf_static = SettingTF()
         if msg_schema is None:
@@ -192,7 +192,7 @@ class KappeCLI:
         config.plugin_folder = plugin_folder
         config.progress = self.progress
         config.save_metadata = save_metadata
-        config.frame_id_mapping = frame_id_mapping # Added
+        config.frame_id_mapping = frame_id_mapping
 
         # check for msgs folder
         if msg_folder is not None and not msg_folder.exists():
