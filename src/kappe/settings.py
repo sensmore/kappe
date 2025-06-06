@@ -81,6 +81,7 @@ class Settings(BaseModel):
     :ivar msg_folder: Folder containing message definitions, defaults to ./msgs/.
     :ivar progress: Show progress bar.
     :ivar save_metadata: If true save the config as attachment in the new created mcap.
+    :ivar frame_id_mapping: Mapping of topic names to new frame_id values.
     """
 
     general: SettingGeneral = SettingGeneral()
@@ -102,3 +103,4 @@ class Settings(BaseModel):
 
     progress: bool = True
     save_metadata: bool = True
+    frame_id_mapping: dict[str, str] = {}

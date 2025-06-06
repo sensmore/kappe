@@ -98,6 +98,16 @@ topic:
     - /points
 ```
 
+#### Change message `frame_id`
+
+To change the `frame_id` for specific topics, you can use `frame_id_mapping` in your configuration:
+
+```yaml
+frame_id_mapping:
+  "/imu/data": "imu_link_new"
+  "/lidar/points": "lidar_frame_new"
+```
+
 ### Topic Times
 
 The `time_offset` config manipulates the mcap message time and/or the ROS header timestamp.
