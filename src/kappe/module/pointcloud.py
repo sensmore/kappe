@@ -3,7 +3,7 @@ from pointcloud2 import create_cloud, read_points
 from pydantic import BaseModel
 from scipy.spatial.transform import Rotation
 
-from kappe.utils.settings import SettingRotation
+from kappe.utils.settings import SettingEgoBounds, SettingRotation
 from kappe.writer import WrappedDecodedMessage
 
 
@@ -12,18 +12,21 @@ class SettingPointCloud(BaseModel):
     Point cloud settings.
 
     :ivar remove_zero: Remove points with all zero coordinates (x, y, z).
+    :ivar remove_ego_bb: Remove points that are inside the ego bounds.
+    :ivar ego_bounds: Ego bounds to remove points from.
     :ivar rotation: Rotation to apply to point cloud.
     :ivar field_mapping: Mapping of point cloud field names to a new name.
     """
 
     remove_zero: bool = False
+    remove_ego_bb: bool = False
+    ego_bounds: SettingEgoBounds | None = None
     rotation: SettingRotation = SettingRotation()
     field_mapping: dict[str, str] | None = None
 
 
 def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
     ros_msg = msg.decoded_message
-
     if cfg.field_mapping is not None:
         for pc_field in ros_msg.fields:
             pc_field.name = cfg.field_mapping.get(pc_field.name, pc_field.name)
@@ -35,6 +38,19 @@ def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
 
         if cfg.remove_zero:
             cloud = cloud[np.logical_and(cloud['x'] != 0.0, cloud['y'] != 0.0, cloud['z'] != 0.0)]
+
+        if cfg.remove_ego_bb and cfg.ego_bounds is not None:
+            # Create individual boolean masks for each condition
+            x_mask = np.logical_and(cloud['x'] < cfg.ego_bounds.x_front, 
+                                   cloud['x'] > cfg.ego_bounds.x_back)
+            y_mask = np.logical_and(cloud['y'] < cfg.ego_bounds.y_right, 
+                                   cloud['y'] > cfg.ego_bounds.y_left)
+            z_mask = np.logical_and(cloud['z'] < cfg.ego_bounds.z_up, 
+                                   cloud['z'] > cfg.ego_bounds.z_down)
+
+            # Combine all masks - keep points OUTSIDE the ego bounds
+            ego_mask = np.logical_not(np.logical_and(np.logical_and(x_mask, y_mask), z_mask))
+            cloud = cloud[ego_mask]
 
         quat = cfg.rotation.to_quaternion()
         if quat is not None:

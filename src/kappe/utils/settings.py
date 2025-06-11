@@ -23,6 +23,25 @@ def euler_to_quaternion(rpy: tuple[float, float, float]) -> tuple[float, float, 
     return (x, y, z, w)
 
 
+class SettingEgoBounds(BaseModel):
+    """
+    Ego bounds settings.
+
+    :ivar x_front: Front x bound.
+    :ivar x_back: Back x bound.
+    :ivar y_right: Right y bound.
+    :ivar y_left: Left y bound.
+    :ivar z_up: Up z bound.
+    :ivar z_down: Down z bound.
+    """
+
+    x_front: float = 0.0
+    x_back: float = 0.0
+    y_right: float = 0.0
+    y_left: float = 0.0
+    z_up: float = 0.0
+    z_down: float = 0.0
+
 class SettingRotation(BaseModel):
     """
     Rotation settings.
