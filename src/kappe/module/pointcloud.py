@@ -12,14 +12,12 @@ class SettingPointCloud(BaseModel):
     Point cloud settings.
 
     :ivar remove_zero: Remove points with all zero coordinates (x, y, z).
-    :ivar remove_ego_bb: Remove points that are inside the ego bounds.
     :ivar ego_bounds: Ego bounds to remove points from.
     :ivar rotation: Rotation to apply to point cloud.
     :ivar field_mapping: Mapping of point cloud field names to a new name.
     """
 
     remove_zero: bool = False
-    remove_ego_bb: bool = False
     ego_bounds: SettingEgoBounds | None = None
     rotation: SettingRotation = SettingRotation()
     field_mapping: dict[str, str] | None = None
@@ -39,14 +37,17 @@ def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
         if cfg.remove_zero:
             cloud = cloud[np.logical_and(cloud['x'] != 0.0, cloud['y'] != 0.0, cloud['z'] != 0.0)]
 
-        if cfg.remove_ego_bb and cfg.ego_bounds is not None:
+        if cfg.ego_bounds is not None:
             # Create individual boolean masks for each condition
-            x_mask = np.logical_and(cloud['x'] < cfg.ego_bounds.x_front, 
-                                   cloud['x'] > cfg.ego_bounds.x_back)
-            y_mask = np.logical_and(cloud['y'] < cfg.ego_bounds.y_right, 
-                                   cloud['y'] > cfg.ego_bounds.y_left)
-            z_mask = np.logical_and(cloud['z'] < cfg.ego_bounds.z_up, 
-                                   cloud['z'] > cfg.ego_bounds.z_down)
+            x_mask = np.logical_and(
+                cloud['x'] < cfg.ego_bounds.x.max, cloud['x'] > cfg.ego_bounds.x.min
+            )
+            y_mask = np.logical_and(
+                cloud['y'] < cfg.ego_bounds.y.max, cloud['y'] > cfg.ego_bounds.y.min
+            )
+            z_mask = np.logical_and(
+                cloud['z'] < cfg.ego_bounds.z.max, cloud['z'] > cfg.ego_bounds.z.min
+            )
 
             # Combine all masks - keep points OUTSIDE the ego bounds
             ego_mask = np.logical_not(np.logical_and(np.logical_and(x_mask, y_mask), z_mask))

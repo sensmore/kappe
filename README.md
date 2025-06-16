@@ -19,6 +19,7 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
     - [Topic](#topic)
       - [Rename a topic](#rename-a-topic)
       - [Remove a topic](#remove-a-topic)
+      - [Change message `frame_id`](#change-message-frame_id)
     - [Topic Times](#topic-times)
       - [Update the ROS header time](#update-the-ros-header-time)
       - [Change ROS Timestamp to publish time](#change-ros-timestamp-to-publish-time)
@@ -27,6 +28,7 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
     - [Pointcloud](#pointcloud)
       - [Remove zero points from PointCloud2](#remove-zero-points-from-pointcloud2)
       - [Rotate a pointcloud](#rotate-a-pointcloud)
+      - [Remove ego bounding box points from the pointcloud](#remove-ego-bounding-box-points-from-the-pointcloud)
       - [Rename PointCloud2 field name](#rename-pointcloud2-field-name)
     - [TF](#tf)
     - [Remove Transform](#remove-transform)
@@ -179,6 +181,23 @@ point_cloud:
         - 0
         - 0
 ```
+#### Remove ego bounding box points from the pointcloud
+
+```yaml
+point_cloud:
+  /sensor/points:
+    ego_bounds:
+      x:
+        min: -1.0
+        max: 2.0
+      y:
+        min: -0.5
+        max: 0.5
+      z:
+        min: -0.2
+        max: 1.5
+```
+
 
 #### Rename PointCloud2 field name
 
