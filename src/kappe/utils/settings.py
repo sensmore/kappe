@@ -23,6 +23,32 @@ def euler_to_quaternion(rpy: tuple[float, float, float]) -> tuple[float, float, 
     return (x, y, z, w)
 
 
+class AxisBound(BaseModel):
+    """
+    Axis bound settings.
+
+    :ivar min: Minimum bound.
+    :ivar max: Maximum bound.
+    """
+
+    min: float = 0.0
+    max: float = 0.0
+
+
+class SettingEgoBounds(BaseModel):
+    """
+    Ego bounds settings.
+
+    :ivar x: X axis bound.
+    :ivar y: Y axis bound.
+    :ivar z: Z axis bound.
+    """
+
+    x: AxisBound = AxisBound()
+    y: AxisBound = AxisBound()
+    z: AxisBound = AxisBound()
+
+
 class SettingRotation(BaseModel):
     """
     Rotation settings.
