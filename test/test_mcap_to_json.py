@@ -225,3 +225,90 @@ def test_pointcloud2_error_handling(tmp_path: Path):
     result = json.loads(lines[0].strip())
     assert result['topic'] == '/malformed_lidar'
     assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'
+
+
+def test_invalid_mcap_file(tmp_path: Path):
+    """Test handling of invalid MCAP file."""
+    # Create a file that's not a valid MCAP
+    invalid_mcap = tmp_path / 'invalid.mcap'
+    invalid_mcap.write_text('This is not a valid MCAP file')
+
+    output_buffer = StringIO()
+
+    # This should raise an error for invalid MCAP format
+    with pytest.raises(RuntimeError, match='Error reading MCAP file'):
+        mcap_to_json(invalid_mcap, output_buffer)
+
+
+def test_empty_mcap_file(tmp_path: Path):
+    """Test handling of empty MCAP file."""
+    # Create an empty MCAP file
+    empty_mcap = tmp_path / 'empty.mcap'
+    empty_mcap.write_bytes(b'')
+
+    output_buffer = StringIO()
+
+    # This should raise an error for empty MCAP file
+    with pytest.raises(RuntimeError, match='Error reading MCAP file'):
+        mcap_to_json(empty_mcap, output_buffer)
+
+
+def test_mcap_to_json_with_zero_limit(tmp_path: Path):
+    """Test mcap_to_json with limit=0."""
+    # Use existing test data
+    input_jsonl = Path('test/e2e/simple_pass/simple_pass.input.jsonl')
+    if not input_jsonl.exists():
+        pytest.skip('Test data not available')
+
+    # Create MCAP from existing JSONL
+    from kappe.utils.json_to_mcap import json_to_mcap
+
+    temp_mcap = tmp_path / 'test.mcap'
+    json_to_mcap(temp_mcap, input_jsonl)
+
+    # Convert with limit=0 - this actually means "no limit" in the implementation
+    output_buffer = StringIO()
+    mcap_to_json(temp_mcap, output_buffer, limit=0)
+
+    # Should get all messages since limit=0 means no limit
+    output_buffer.seek(0)
+    lines = output_buffer.readlines()
+    assert len(lines) >= 1  # Should have at least one message
+
+
+def test_mcap_to_json_with_bytearray_limit(tmp_path: Path):
+    """Test mcap_to_json with large bytearray data."""
+    # Create a message with large data field
+    large_data_message = {
+        'topic': '/large_data',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 1,
+        'datatype': 'std_msgs/msg/UInt8MultiArray',
+        'message': {
+            'layout': {'dim': [], 'data_offset': 0},
+            'data': [i % 256 for i in range(1000)],  # Large data array
+        },
+    }
+
+    test_jsonl = tmp_path / 'large_data.jsonl'
+    test_jsonl.write_text(json.dumps(large_data_message))
+
+    # Convert to MCAP
+    from kappe.utils.json_to_mcap import json_to_mcap
+
+    temp_mcap = tmp_path / 'large_data.mcap'
+    json_to_mcap(temp_mcap, test_jsonl)
+
+    # Convert back to JSON
+    output_buffer = StringIO()
+    mcap_to_json(temp_mcap, output_buffer)
+
+    # Verify output
+    output_buffer.seek(0)
+    lines = output_buffer.readlines()
+    assert len(lines) == 1
+
+    result = json.loads(lines[0].strip())
+    assert result['topic'] == '/large_data'
+    assert 'data' in result['message']

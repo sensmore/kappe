@@ -307,3 +307,86 @@ def test_pointcloud2_conversion_error_handling(tmp_path: Path):
     # Verify MCAP file was created (fallback should work)
     assert output_mcap.exists()
     assert output_mcap.stat().st_size > 0
+
+
+def test_non_jsonl_file_extension(tmp_path: Path):
+    """Test that non-JSONL files are rejected."""
+    # Create a file with wrong extension
+    json_file = tmp_path / 'test.json'
+    json_file.write_text('{"test": "data"}')
+
+    mcap_file = tmp_path / 'output.mcap'
+
+    with pytest.raises(ValueError, match='File must be a JSONL file'):
+        json_to_mcap(mcap_file, json_file)
+
+
+def test_invalid_json_in_file(tmp_path: Path):
+    """Test handling of invalid JSON in JSONL file."""
+    # Create a file with invalid JSON
+    jsonl_file = tmp_path / 'invalid.jsonl'
+    jsonl_file.write_text('{"valid": "json"}\n{invalid json}\n')
+
+    mcap_file = tmp_path / 'output.mcap'
+
+    with pytest.raises(ValueError, match='Error parsing message data'):
+        json_to_mcap(mcap_file, jsonl_file)
+
+
+def test_invalid_message_structure(tmp_path: Path):
+    """Test handling of invalid message structure."""
+    # Create a file with invalid message structure (missing required fields)
+    jsonl_file = tmp_path / 'invalid_structure.jsonl'
+    jsonl_file.write_text('{"invalid": "message"}\n')
+
+    mcap_file = tmp_path / 'output.mcap'
+
+    with pytest.raises(ValueError, match='Error parsing message data'):
+        json_to_mcap(mcap_file, jsonl_file)
+
+
+def test_empty_file(tmp_path: Path):
+    """Test handling of empty JSONL file."""
+    # Create an empty file
+    jsonl_file = tmp_path / 'empty.jsonl'
+    jsonl_file.write_text('')
+
+    mcap_file = tmp_path / 'output.mcap'
+
+    with pytest.raises(ValueError, match='No valid messages found in file'):
+        json_to_mcap(mcap_file, jsonl_file)
+
+
+def test_file_with_only_whitespace(tmp_path: Path):
+    """Test handling of file with only whitespace."""
+    # Create a file with only whitespace
+    jsonl_file = tmp_path / 'whitespace.jsonl'
+    jsonl_file.write_text('   \n  \t  \n')
+
+    mcap_file = tmp_path / 'output.mcap'
+
+    with pytest.raises(ValueError, match='No valid messages found in file'):
+        json_to_mcap(mcap_file, jsonl_file)
+
+
+def test_unknown_message_type(tmp_path: Path):
+    """Test handling of unknown message type."""
+    # Create a file with unknown message type
+    unknown_message = {
+        'topic': '/unknown_topic',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 1,
+        'datatype': 'unknown_msgs/msg/UnknownType',
+        'message': {'data': 'test'},
+    }
+
+    jsonl_file = tmp_path / 'unknown_type.jsonl'
+    jsonl_file.write_text(json.dumps(unknown_message))
+
+    mcap_file = tmp_path / 'output.mcap'
+
+    with pytest.raises(
+        ValueError, match='Message definition for unknown_msgs/msg/UnknownType not found'
+    ):
+        json_to_mcap(mcap_file, jsonl_file)
