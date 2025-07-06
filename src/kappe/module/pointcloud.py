@@ -53,7 +53,7 @@ def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
             ego_mask = np.logical_not(np.logical_and(np.logical_and(x_mask, y_mask), z_mask))
             cloud = cloud[ego_mask]
 
-        quat = cfg.rotation.to_quaternion()
+        quat = cfg.rotation.quaternion
         if quat is not None:
             rot = Rotation.from_quat(np.array(quat))
             stack = np.column_stack([cloud['x'], cloud['y'], cloud['z']])

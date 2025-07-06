@@ -149,7 +149,7 @@ def tf_static_insert(cfg: SettingTF, stamp_ns: int) -> None | Any:
                 'z': translation.z,
             }
 
-        rot_quat = insert.rotation.to_quaternion()
+        rot_quat = insert.rotation.quaternion
         if rot_quat is not None:
             trans['rotation'] = {
                 'x': rot_quat[0],

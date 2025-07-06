@@ -7,7 +7,7 @@ import pytest
 from kappe.plugin import ConverterPlugin, load_plugin, module_get_plugins
 
 
-class TestConverterPlugin(ConverterPlugin):
+class OneConverterPlugin(ConverterPlugin):
     @property
     def output_schema(self) -> str:
         return 'test_schema'
@@ -33,10 +33,10 @@ def test_converter_plugin_abstract():
 
 def test_converter_plugin_implementation():
     """Test that ConverterPlugin can be properly implemented."""
-    plugin = TestConverterPlugin()
+    plugin = OneConverterPlugin()
     assert plugin.output_schema == 'test_schema'
     assert plugin.convert({'test': 'data'}) == {'converted': {'test': 'data'}}
-    assert plugin.logger.name == 'TestConverterPlugin'
+    assert plugin.logger.name == 'OneConverterPlugin'
 
 
 def test_module_get_plugins():
@@ -44,7 +44,7 @@ def test_module_get_plugins():
     # Create a mock module with our test classes
     mock_module = MagicMock()
     mock_module.__dict__ = {
-        'TestConverterPlugin': TestConverterPlugin,
+        'OneConverterPlugin': OneConverterPlugin,
         'AnotherTestPlugin': AnotherTestPlugin,
         'ConverterPlugin': ConverterPlugin,
         'SomeOtherClass': str,
@@ -58,7 +58,7 @@ def test_module_get_plugins():
     ):
         plugins = module_get_plugins(mock_module)
 
-    assert 'TestConverterPlugin' in plugins
+    assert 'OneConverterPlugin' in plugins
     assert 'AnotherTestPlugin' in plugins
     assert 'ConverterPlugin' not in plugins  # Should be excluded
     assert 'SomeOtherClass' not in plugins  # Not a ConverterPlugin subclass
@@ -170,8 +170,8 @@ def test_load_plugin_from_builtin_plugins():
 
         with patch('kappe.plugin.SourceFileLoader') as mock_loader:
             mock_module = MagicMock()
-            mock_module.Converter = TestConverterPlugin
+            mock_module.Converter = OneConverterPlugin
             mock_loader.return_value.load_module.return_value = mock_module
 
             plugin_class = load_plugin(None, 'test_plugin')
-            assert plugin_class == TestConverterPlugin
+            assert plugin_class == OneConverterPlugin
