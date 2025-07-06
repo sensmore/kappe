@@ -168,12 +168,17 @@ def test_pointcloud2_conversion(tmp_path: Path):
     message = result['message']
     assert 'header' in message
     assert 'fields' in message
-    assert 'data' in message
+    assert 'points' in message  # mcap_to_json converts raw data to decoded points
 
-    # If pointcloud2 processing worked, we should have 'points' field
-    # Note: This might not always be present depending on the data format
-    if 'points' in message:
-        assert isinstance(message['points'], list)
+    # Check that we have the expected number of points (3)
+    assert isinstance(message['points'], list)
+    assert len(message['points']) == 3
+
+    # Check that all points have x, y, z coordinates
+    for point in message['points']:
+        assert 'x' in point
+        assert 'y' in point
+        assert 'z' in point
 
 
 def test_pointcloud2_error_handling(tmp_path: Path):

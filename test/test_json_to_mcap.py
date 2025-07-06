@@ -259,12 +259,18 @@ def test_pointcloud2_round_trip_with_points(tmp_path: Path):
     message = result['message']
     assert 'header' in message
     assert 'fields' in message
-    assert 'data' in message
+    assert 'points' in message  # After roundtrip, raw data becomes decoded points
 
     # The roundtrip should preserve the basic structure
     assert message['header']['frame_id'] == 'lidar_frame'
     assert len(message['fields']) == 3
     assert message['fields'][0]['name'] == 'x'
+
+    # Check that the points are properly decoded
+    assert len(message['points']) == 1
+    assert message['points'][0]['x'] == 1.5
+    assert message['points'][0]['y'] == 2.5
+    assert message['points'][0]['z'] == 3.5
 
 
 def test_pointcloud2_conversion_error_handling(tmp_path: Path):

@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -8,6 +9,8 @@ from pydantic import BaseModel
 
 from kappe.settings import ROS2Distro
 from kappe.utils.msg_def import get_message_definition
+
+logger = logging.getLogger(__name__)
 
 
 class _Message(BaseModel):
@@ -51,34 +54,41 @@ def _convert_json_to_pointcloud2(message_data: dict) -> dict:
     """Convert JSON message data back to PointCloud2 format if needed."""
     # Check if this has the structure of a PointCloud2 message with decoded points
 
-    # If we have decoded points, reconstruct the PointCloud2 message
+    # Only process if we have decoded points
+    if 'points' not in message_data:
+        return message_data
     points = message_data['points']
     fields = message_data['fields']
     header = message_data['header']
 
     # Convert points list to numpy array
     if points:
-        dtypes = dtype_from_fields(fields)
-        # Convert list of dictionaries to list of tuples in field order
-        field_names = [field['name'] for field in fields]
-        points_tuples = [tuple(point[name] for name in field_names) for point in points]
-        points_array = np.array(points_tuples, dtype=dtypes)
+        try:
+            dtypes = dtype_from_fields(fields)
+            # Convert list of dictionaries to list of tuples in field order
+            field_names = [field['name'] for field in fields]
+            points_tuples = [tuple(point[name] for name in field_names) for point in points]
+            points_array = np.array(points_tuples, dtype=dtypes)
 
-        # Create PointCloud2 message using pointcloud2 library
-        pointcloud_msg = create_cloud(header=header, fields=fields, points=points_array)
+            # Create PointCloud2 message using pointcloud2 library
+            pointcloud_msg = create_cloud(header=header, fields=fields, points=points_array)
 
-        # Convert the created message to dict format
-        return {
-            'header': header,
-            'height': pointcloud_msg.height,
-            'width': pointcloud_msg.width,
-            'fields': fields,
-            'is_bigendian': pointcloud_msg.is_bigendian,
-            'point_step': pointcloud_msg.point_step,
-            'row_step': pointcloud_msg.row_step,
-            'data': list(pointcloud_msg.data),
-            'is_dense': pointcloud_msg.is_dense,
-        }
+            # Convert the created message to dict format
+            return {
+                'header': header,
+                'height': pointcloud_msg.height,
+                'width': pointcloud_msg.width,
+                'fields': fields,
+                'is_bigendian': pointcloud_msg.is_bigendian,
+                'point_step': pointcloud_msg.point_step,
+                'row_step': pointcloud_msg.row_step,
+                'data': list(pointcloud_msg.data),
+                'is_dense': pointcloud_msg.is_dense,
+            }
+        except (KeyError, ValueError, TypeError) as e:
+            # If conversion fails, return original message_data
+            logger.warning('Failed to convert PointCloud2 points: %s', e)
+            return message_data
 
     return message_data
 
