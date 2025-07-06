@@ -17,7 +17,13 @@ from tqdm import tqdm
 from kappe import __version__
 from kappe.module.pointcloud import point_cloud
 from kappe.module.qos import DurabilityPolicy, Qos, dump_qos_list, parse_qos_list
-from kappe.module.tf import TF_SCHEMA_NAME, TF_SCHEMA_TEXT, tf_remove, tf_static_insert
+from kappe.module.tf import (
+    TF_SCHEMA_NAME,
+    TF_SCHEMA_TEXT,
+    tf_apply_offset,
+    tf_remove,
+    tf_static_insert,
+)
 from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
 from kappe.settings import Settings
@@ -111,7 +117,7 @@ class Converter:
                     raise ValueError(f'Converter: Output schema "{out_schema}" not found')
                 self.schema_list[out_schema] = self.writer.register_msgdef(out_schema, new_data)
 
-        if self.config.tf_static and TF_SCHEMA_NAME not in self.schema_list:
+        if (self.config.tf or self.config.tf_static) and TF_SCHEMA_NAME not in self.schema_list:
             # insert tf schema
             self.schema_list[TF_SCHEMA_NAME] = self.writer.register_msgdef(
                 TF_SCHEMA_NAME,
@@ -162,6 +168,14 @@ class Converter:
         if self.summary is not None:
             for channel in self.summary.channels.values():
                 self.add_channel(channel)
+
+        if self.config.tf and '/tf' not in self.writer._channel_ids:  # noqa: SLF001
+            # insert tf schema
+            self.writer._writer.register_channel(  # noqa: SLF001
+                topic='/tf',
+                message_encoding='cdr',
+                schema_id=self.schema_list[TF_SCHEMA_NAME].id,
+            )
 
         if self.config.tf_static and '/tf_static' not in self.writer._channel_ids:  # noqa: SLF001
             # insert tf schema
@@ -362,8 +376,24 @@ class Converter:
         if self.config.tf_static.remove_tf_static and topic == '/tf_static':
             return
 
-        if topic in ['/tf', '/tf_static']:
-            if not tf_remove(self.config.tf_static, msg):
+        if topic == '/tf':
+            # Apply offsets first if we have any offset configuration but no remove configuration
+            if self.config.tf.offset and not self.config.tf.remove:
+                tf_apply_offset(self.config.tf, msg)
+            # Then handle removal if configured (which also applies offsets internally)
+            elif (self.config.tf.remove or self.config.tf.offset) and not tf_remove(
+                self.config.tf, msg
+            ):
+                # remove empty tf messages
+                return
+        elif topic == '/tf_static':
+            # Apply offsets first if we have any offset configuration but no remove configuration
+            if self.config.tf_static.offset and not self.config.tf_static.remove:
+                tf_apply_offset(self.config.tf_static, msg)
+            # Then handle removal if configured (which also applies offsets internally)
+            elif (self.config.tf_static.remove or self.config.tf_static.offset) and not tf_remove(
+                self.config.tf_static, msg
+            ):
                 # remove empty tf messages
                 return
         elif (
