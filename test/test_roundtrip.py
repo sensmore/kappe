@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-
 from kappe.utils.json_to_mcap import json_to_mcap
 from kappe.utils.mcap_to_json import mcap_to_json
 
