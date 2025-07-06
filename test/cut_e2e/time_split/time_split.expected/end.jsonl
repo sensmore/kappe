@@ -1,0 +1,1 @@
+{"topic": "/test", "log_time": 1676549600000000000, "publish_time": 1676549600000000000, "sequence": 3, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
