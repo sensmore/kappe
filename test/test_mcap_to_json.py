@@ -16,19 +16,6 @@ def test_file_not_found():
         mcap_to_json(non_existent_file, output_buffer)
 
 
-def test_invalid_topic_format(tmp_path: Path):
-    """Test that ValueError is raised for topics not starting with '/'."""
-
-    try:
-        output_buffer = StringIO()
-        invalid_topics = ['invalid_topic', 'another_invalid']
-
-        with pytest.raises(ValueError, match='Topic must start with'):
-            mcap_to_json(tmp_path, output_buffer, topics=invalid_topics)
-    finally:
-        tmp_path.unlink(missing_ok=True)
-
-
 def test_basic_conversion_with_valid_mcap(tmp_path: Path):
     """Test basic MCAP to JSONL conversion using existing test data."""
     # Use existing test data

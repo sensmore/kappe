@@ -38,11 +38,6 @@ def _iter_jsonl(
     if not file_path.exists():
         raise FileNotFoundError(f'MCAP file not found: {file_path}')
 
-    if topics:
-        for topic in topics:
-            if not topic.startswith('/'):
-                raise ValueError(f'Topic must start with "/": {topic}')
-
     try:
         with file_path.open('rb') as f:
             reader = make_reader(f, decoder_factories=[Ros2DecoderFactory()])

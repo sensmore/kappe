@@ -8,7 +8,7 @@ from kappe.settings import ROS2Distro
 from kappe.utils.msg_def import get_message_definition
 
 
-class Message(BaseModel):
+class _Message(BaseModel):
     topic: str
     log_time: int
     publish_time: int
@@ -17,11 +17,11 @@ class Message(BaseModel):
     message: dict
 
 
-class McapJson(BaseModel):
-    messages: list[Message]
+class _McapJson(BaseModel):
+    messages: list[_Message]
 
 
-def load_json_and_validate(file_path: Path) -> McapJson:
+def _load_json_and_validate(file_path: Path) -> _McapJson:
     # TODO support non jsonl files
     if not file_path.exists():
         raise FileNotFoundError(f'File not found: {file_path}')
@@ -46,7 +46,7 @@ def load_json_and_validate(file_path: Path) -> McapJson:
 
 
 def json_to_mcap(output_file: Path, json_path: Path) -> None:
-    mcap_data = load_json_and_validate(json_path)
+    mcap_data = _load_json_and_validate(json_path)
 
     with output_file.open('wb') as stream:
         writer = Writer(stream)
