@@ -32,7 +32,16 @@ def test_e2e(case_yaml: Path, tmp_path: Path) -> None:
 
     # patch argv
     with patch(
-        'sys.argv', ['kappe', '--progress=false', 'convert', '--config', str(case_yaml), str(in_mcap), str(out_dir)]
+        'sys.argv',
+        [
+            'kappe',
+            '--progress=false',
+            'convert',
+            '--config',
+            str(case_yaml),
+            str(in_mcap),
+            str(out_dir),
+        ],
     ):
         kappe_main()
 

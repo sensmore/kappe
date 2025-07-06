@@ -39,9 +39,7 @@ repository = "https://github.com/sensmore/kappe"
 kappe = "kappe.cli:main"
 
 [dependency-groups]
-dev = [
-    "pytest>=8.4.1",
-]
+dev = ["pytest-cov>=6.2.1", "pytest>=8.4.1"]
 
 [build-system]
 requires = ["hatchling"]
@@ -79,7 +77,13 @@ ignore = [
     # formater
     'COM812', # missing-trailing-comma
     'ISC001', # single-line-implicit-string-concatenation
+
+    'UP038', # Depreacted rule
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Relaxed lints for test files
+"test/**/*.py" = ["T201", "SLF001", "ANN201", "INP001"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'

@@ -12,6 +12,7 @@ from kappe.module.timing import SettingTimeOffset
 
 class ROS2Distro(str, Enum):
     """Valid ROS2 distributions."""
+
     HUMBLE = 'humble'
     IRON = 'iron'
     JAZZY = 'jazzy'
