@@ -1,0 +1,3 @@
+time_offset:
+  "/test_topic":
+    pub_time: true

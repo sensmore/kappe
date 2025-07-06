@@ -1,0 +1,4 @@
+time_offset:
+  "/test_topic":
+    update_publish_time: true
+    update_log_time: true
