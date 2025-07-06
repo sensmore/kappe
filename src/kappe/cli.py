@@ -132,6 +132,7 @@ class KappeCLI:
         general: SettingGeneral | None = None,
         topic: SettingTopic | None = None,
         tf_static: SettingTF | None = None,
+        tf: SettingTF | None = None,
         msg_schema: SettingSchema | None = None,
         msg_folder: Path | None = None,
         point_cloud: dict[str, SettingPointCloud] | None = None,
@@ -153,7 +154,8 @@ class KappeCLI:
             general: General settings (threads, etc.).
             topic: Migrations for topics (remove, rename, etc.).
             frame_id_mapping: Mapping of topic names to new frame_id values. Applied globally.
-            tf_static: Migrations for TF (insert, remove).
+            tf_static: Migrations for TF static (insert, remove, offset).
+            tf: Migrations for TF (insert, remove, offset).
             msg_schema: Updating or changing a schema.
             msg_folder: Path to the folder containing .msg files used to change the schema and
                 upgrading from ROS1.
@@ -177,6 +179,8 @@ class KappeCLI:
             frame_id_mapping = {}
         if tf_static is None:
             tf_static = SettingTF()
+        if tf is None:
+            tf = SettingTF()
         if msg_schema is None:
             msg_schema = SettingSchema()
         if point_cloud is None:
@@ -190,6 +194,7 @@ class KappeCLI:
         config.general = general
         config.topic = topic
         config.tf_static = tf_static
+        config.tf = tf
         config.msg_schema = msg_schema
         config.point_cloud = point_cloud
         config.time_offset = time_offset

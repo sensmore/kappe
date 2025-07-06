@@ -81,7 +81,8 @@ class Settings(BaseModel):
     :ivar general: General settings.
     :ivar point_cloud: Mapping of topic names to point cloud settings.
     :ivar topic: Topic settings.
-    :ivar tf_static: TF settings.
+    :ivar tf: TF settings for /tf topic.
+    :ivar tf_static: TF settings for /tf_static topic.
     :ivar msg_schema: Schema settings.
     :ivar time_offset: Mapping of topic names to time offset settings.
     :ivar plugins: List of plugins.
@@ -97,6 +98,7 @@ class Settings(BaseModel):
 
     general: SettingGeneral = SettingGeneral()
     topic: SettingTopic = SettingTopic()
+    tf: SettingTF = SettingTF()
     tf_static: SettingTF = SettingTF()
     msg_schema: SettingSchema = SettingSchema()
 

@@ -33,6 +33,7 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
     - [TF](#tf)
     - [Remove Transform](#remove-transform)
       - [Insert Static Transform](#insert-static-transform)
+      - [Apply Transform Offsets](#apply-transform-offsets)
     - [Schema Mapping](#schema-mapping)
     - [Trim](#trim)
     - [Plugins](#plugins)
@@ -216,7 +217,18 @@ point_cloud:
 
 ### Remove Transform
 
-Removes all transform where the child_frame_id is `test_data_frame` or `other_frame`.
+Removes transforms from `/tf` and `/tf_static` messages where the child_frame_id matches the specified values.
+
+**For /tf messages:**
+
+```yaml
+tf:
+  remove:
+    - test_data_frame
+    - other_frame
+```
+
+**For /tf_static messages:**
 
 ```yaml
 tf_static:
@@ -253,6 +265,58 @@ tf_static:
           - 0
           - 90
           - 0
+```
+
+#### Apply Transform Offsets
+
+Apply translation and rotation offsets to existing transforms in both `/tf` and `/tf_static` messages. The offsets are added to the current transform values.
+
+> Rotation can be specified in `euler_deg` or `quaternion`
+
+**For /tf messages:**
+
+```yaml
+tf:
+  offset:
+    - child_frame_id: sensor_frame
+      translation:
+        x: 0.1
+        y: -0.05
+        z: 0.2
+      rotation:
+        euler_deg:
+          - 0
+          - 0
+          - 45
+```
+
+**For /tf_static messages:**
+
+```yaml
+tf_static:
+  offset:
+    - child_frame_id: sensor_frame
+      translation:
+        x: 0.1
+        y: -0.05
+        z: 0.2
+      rotation:
+        euler_deg:
+          - 0
+          - 0
+          - 45
+
+    - child_frame_id: camera_frame
+      translation:
+        x: -0.1
+        y: 0.0
+        z: 0.0
+      rotation:
+        quaternion:
+          - 0.0
+          - 0.0
+          - 0.3827
+          - 0.9239
 ```
 
 ### Schema Mapping
