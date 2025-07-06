@@ -105,7 +105,9 @@ class Converter:
                 if out_schema in self.schema_list:
                     continue
 
-                new_data = get_message_definition(out_schema, self.config.msg_folder)
+                new_data = get_message_definition(
+                    out_schema, self.config.ros_distro, self.config.msg_folder
+                )
 
                 if new_data is None:
                     raise ValueError(f'Converter: Output schema "{out_schema}" not found')

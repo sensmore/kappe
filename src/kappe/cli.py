@@ -14,7 +14,14 @@ from kappe.module.pointcloud import SettingPointCloud
 from kappe.module.tf import SettingTF
 from kappe.module.timing import SettingTimeOffset
 from kappe.plugin import load_plugin
-from kappe.settings import SettingGeneral, SettingPlugin, Settings, SettingSchema, SettingTopic
+from kappe.settings import (
+    ROS2Distro,
+    SettingGeneral,
+    SettingPlugin,
+    Settings,
+    SettingSchema,
+    SettingTopic,
+)
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -126,7 +133,7 @@ class KappeCLI:
         topic: SettingTopic | None = None,
         tf_static: SettingTF | None = None,
         msg_schema: SettingSchema | None = None,
-        msg_folder: Path | None = Path('./msgs'),
+        msg_folder: Path | None = None,
         point_cloud: dict[str, SettingPointCloud] | None = None,
         time_offset: dict[str, SettingTimeOffset] | None = None,
         plugins: list[SettingPlugin] | None = None,
@@ -137,6 +144,7 @@ class KappeCLI:
         save_metadata: bool = True,
         overwrite: bool = False,
         frame_id_mapping: dict[str, str] | None = None,
+        ros_distro: ROS2Distro = ROS2Distro.HUMBLE,
     ) -> None:
         """Convert mcap(s) with changing, filtering, converting, ... data.
 
@@ -157,6 +165,7 @@ class KappeCLI:
             time_end: End time of the new MCAP.
             keep_all_static_tf: If true ensue all /tf_static messages are in the outputted file.
             overwrite: If true already existing files will be overwritten.
+            ros_distro: ROS2 distribution to use for message definitions.
         """
 
         # TODO: cleanup
@@ -193,6 +202,7 @@ class KappeCLI:
         config.progress = self.progress
         config.save_metadata = save_metadata
         config.frame_id_mapping = frame_id_mapping
+        config.ros_distro = ros_distro
 
         # check for msgs folder
         if msg_folder is not None and not msg_folder.exists():

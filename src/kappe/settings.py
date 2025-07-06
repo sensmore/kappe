@@ -1,3 +1,4 @@
+from enum import Enum
 from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Any
@@ -7,6 +8,14 @@ from pydantic import BaseModel
 from kappe.module.pointcloud import SettingPointCloud
 from kappe.module.tf import SettingTF
 from kappe.module.timing import SettingTimeOffset
+
+
+class ROS2Distro(str, Enum):
+    """Valid ROS2 distributions."""
+    HUMBLE = 'humble'
+    IRON = 'iron'
+    JAZZY = 'jazzy'
+    ROLLING = 'rolling'
 
 
 class SettingGeneral(BaseModel):
@@ -82,6 +91,7 @@ class Settings(BaseModel):
     :ivar progress: Show progress bar.
     :ivar save_metadata: If true save the config as attachment in the new created mcap.
     :ivar frame_id_mapping: Mapping of topic names to new frame_id values.
+    :ivar ros_distro: ROS2 distribution to use for message definitions.
     """
 
     general: SettingGeneral = SettingGeneral()
@@ -104,3 +114,4 @@ class Settings(BaseModel):
     progress: bool = True
     save_metadata: bool = True
     frame_id_mapping: dict[str, str] = {}
+    ros_distro: ROS2Distro = ROS2Distro.HUMBLE

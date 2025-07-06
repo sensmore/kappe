@@ -1,13 +1,10 @@
 import json
-from io import BytesIO
 from pathlib import Path
-from typing import IO
-from zipfile import ZipFile
 
-import platformdirs
 from mcap_ros2.writer import Writer
 from pydantic import BaseModel
 
+from kappe.settings import ROS2Distro
 from kappe.utils.msg_def import get_message_definition
 
 
@@ -48,57 +45,8 @@ def load_json_and_validate(file_path: Path) -> McapJson:
     return McapJson(messages=messages)
 
 
-URLS = [
-    ('rcl_interfaces', 'https://github.com/ros2/rcl_interfaces/archive/refs/heads/humble.zip'),
-    (
-        'common_interfaces',
-        'https://github.com/ros2/common_interfaces/archive/refs/heads/humble.zip',
-    ),
-    ('geometry2', 'https://github.com/ros2/geometry2/archive/refs/heads/humble.zip'),
-]
-
-
-def _download(url: str, buffer: IO) -> None:
-    from urllib.error import URLError
-    from urllib.request import urlopen
-
-    if not url.startswith(('http:', 'https:')):
-        raise ValueError("URL must start with 'http:' or 'https:'")
-
-    try:
-        with urlopen(url) as response:  # noqa: S310
-            if response.status != 200:
-                msg = f'Failed to download {url}: {response.status} {response.reason}'
-                raise ValueError(msg)
-            buffer.write(response.read())
-    except URLError as e:
-        raise ValueError(f'Network error downloading {url}: {e}') from e
-
-
-def _download_and_extract(url: str, target_dir: Path) -> None:
-    if target_dir.exists():
-        return
-    target_dir.mkdir(parents=True, exist_ok=True)
-    buffer = BytesIO()
-    _download(url, buffer)
-    with ZipFile(buffer, 'r') as zip_ref:
-        zip_ref.extractall(target_dir)
-
-
-def _update_cache(cache_dir: Path) -> None:
-    for name, url in URLS:
-        _download_and_extract(url, cache_dir / name)
-
-
 def json_to_mcap(output_file: Path, json_path: Path) -> None:
     mcap_data = load_json_and_validate(json_path)
-
-    cache_dir = platformdirs.user_cache_path(
-        appname='kappe_msg_def',
-        ensure_exists=True,
-        version='1',
-    )
-    _update_cache(cache_dir)
 
     with output_file.open('wb') as stream:
         writer = Writer(stream)
@@ -107,7 +55,7 @@ def json_to_mcap(output_file: Path, json_path: Path) -> None:
 
         for message in mcap_data.messages:
             if message.datatype not in schemas:
-                msg_def = get_message_definition(message.datatype, cache_dir)
+                msg_def = get_message_definition(message.datatype, ROS2Distro.HUMBLE)
                 if msg_def is None:
                     raise ValueError(f'Message definition for {message.datatype} not found.')
                 schema_id = writer.register_msgdef(

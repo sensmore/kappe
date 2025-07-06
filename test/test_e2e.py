@@ -1,13 +1,12 @@
 import json
-import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from kappe.cli import main as kappe_main
 from kappe.utils.json_to_mcap import json_to_mcap
 from kappe.utils.mcap_to_json import mcap_to_json
-from kappe.cli import main as kappe_main
 
 
 def discover_cases() -> list:
