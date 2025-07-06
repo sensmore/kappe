@@ -1,0 +1,14 @@
+tf_static:
+  insert:
+    - frame_id: base
+      child_frame_id: sensor1
+      translation:
+        x: 1.0
+        y: 0.0
+        z: 0.0
+    - frame_id: base
+      child_frame_id: sensor2
+      translation:
+        x: 0.0
+        y: 1.0
+        z: 0.0
