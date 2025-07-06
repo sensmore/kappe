@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
 
+import numpy as np
 from mcap_ros2.writer import Writer
+from pointcloud2 import create_cloud, dtype_from_fields
 from pydantic import BaseModel
 
 from kappe.settings import ROS2Distro
@@ -30,7 +32,7 @@ def _load_json_and_validate(file_path: Path) -> _McapJson:
 
     try:
         messages = [
-            Message(**json.loads(line))
+            _Message(**json.loads(line))
             for line in file_path.read_text().splitlines()
             if line.strip()
         ]
@@ -42,7 +44,43 @@ def _load_json_and_validate(file_path: Path) -> _McapJson:
     if not messages:
         raise ValueError('No valid messages found in file.')
 
-    return McapJson(messages=messages)
+    return _McapJson(messages=messages)
+
+
+def _convert_json_to_pointcloud2(message_data: dict) -> dict:
+    """Convert JSON message data back to PointCloud2 format if needed."""
+    # Check if this has the structure of a PointCloud2 message with decoded points
+
+    # If we have decoded points, reconstruct the PointCloud2 message
+    points = message_data['points']
+    fields = message_data['fields']
+    header = message_data['header']
+
+    # Convert points list to numpy array
+    if points:
+        dtypes = dtype_from_fields(fields)
+        # Convert list of dictionaries to list of tuples in field order
+        field_names = [field['name'] for field in fields]
+        points_tuples = [tuple(point[name] for name in field_names) for point in points]
+        points_array = np.array(points_tuples, dtype=dtypes)
+
+        # Create PointCloud2 message using pointcloud2 library
+        pointcloud_msg = create_cloud(header=header, fields=fields, points=points_array)
+
+        # Convert the created message to dict format
+        return {
+            'header': header,
+            'height': pointcloud_msg.height,
+            'width': pointcloud_msg.width,
+            'fields': fields,
+            'is_bigendian': pointcloud_msg.is_bigendian,
+            'point_step': pointcloud_msg.point_step,
+            'row_step': pointcloud_msg.row_step,
+            'data': list(pointcloud_msg.data),
+            'is_dense': pointcloud_msg.is_dense,
+        }
+
+    return message_data
 
 
 def json_to_mcap(output_file: Path, json_path: Path) -> None:
@@ -64,8 +102,18 @@ def json_to_mcap(output_file: Path, json_path: Path) -> None:
                 )
                 schemas[message.datatype] = schema_id
 
+            # Check if this is a PointCloud2 message and convert if needed
+            message_data = message.message
+            is_pointcloud2 = message.datatype in [
+                'sensor_msgs/msg/PointCloud2',
+                'sensor_msgs/PointCloud2',
+            ]
+
+            if is_pointcloud2:
+                message_data = _convert_json_to_pointcloud2(message_data)
+
             writer.write_message(
-                message=message.message,
+                message=message_data,
                 topic=message.topic,
                 schema=schemas[message.datatype],
                 log_time=message.log_time,

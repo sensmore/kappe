@@ -119,3 +119,185 @@ def test_round_trip_conversion(tmp_path: Path):
             key in message
             for key in ['topic', 'log_time', 'publish_time', 'sequence', 'datatype', 'message']
         )
+
+
+def test_pointcloud2_json_to_mcap_conversion(tmp_path: Path):
+    """Test PointCloud2 message conversion from JSON to MCAP."""
+    # Create a PointCloud2 message with decoded points
+    test_jsonl = tmp_path / 'pointcloud2_with_points.jsonl'
+
+    pointcloud2_message = {
+        'topic': '/lidar_scan',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 0,
+        'datatype': 'sensor_msgs/msg/PointCloud2',
+        'message': {
+            'header': {'stamp': {'sec': 1234567890, 'nanosec': 0}, 'frame_id': 'lidar_frame'},
+            'height': 1,
+            'width': 2,
+            'fields': [
+                {'name': 'x', 'offset': 0, 'datatype': 7, 'count': 1},
+                {'name': 'y', 'offset': 4, 'datatype': 7, 'count': 1},
+                {'name': 'z', 'offset': 8, 'datatype': 7, 'count': 1},
+            ],
+            'is_bigendian': False,
+            'point_step': 12,
+            'row_step': 24,
+            'data': [0] * 24,  # 2 points * 12 bytes per point
+            'is_dense': True,
+            # Add decoded points data
+            'points': [{'x': 1.0, 'y': 2.0, 'z': 3.0}, {'x': 4.0, 'y': 5.0, 'z': 6.0}],
+        },
+    }
+
+    test_jsonl.write_text(json.dumps(pointcloud2_message))
+
+    # Convert to MCAP
+    output_mcap = tmp_path / 'pointcloud2_output.mcap'
+    json_to_mcap(output_mcap, test_jsonl)
+
+    # Verify MCAP file was created
+    assert output_mcap.exists()
+    assert output_mcap.stat().st_size > 0
+
+
+def test_pointcloud2_json_to_mcap_without_points(tmp_path: Path):
+    """Test PointCloud2 message conversion without decoded points."""
+    # Create a PointCloud2 message without decoded points
+    test_jsonl = tmp_path / 'pointcloud2_no_points.jsonl'
+
+    pointcloud2_message = {
+        'topic': '/lidar_raw',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 0,
+        'datatype': 'sensor_msgs/msg/PointCloud2',
+        'message': {
+            'header': {'stamp': {'sec': 1234567890, 'nanosec': 0}, 'frame_id': 'lidar_frame'},
+            'height': 1,
+            'width': 1,
+            'fields': [
+                {'name': 'x', 'offset': 0, 'datatype': 7, 'count': 1},
+                {'name': 'y', 'offset': 4, 'datatype': 7, 'count': 1},
+                {'name': 'z', 'offset': 8, 'datatype': 7, 'count': 1},
+            ],
+            'is_bigendian': False,
+            'point_step': 12,
+            'row_step': 12,
+            'data': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            'is_dense': True,
+            # No 'points' field - should use raw data
+        },
+    }
+
+    test_jsonl.write_text(json.dumps(pointcloud2_message))
+
+    # Convert to MCAP
+    output_mcap = tmp_path / 'pointcloud2_raw_output.mcap'
+    json_to_mcap(output_mcap, test_jsonl)
+
+    # Verify MCAP file was created
+    assert output_mcap.exists()
+    assert output_mcap.stat().st_size > 0
+
+
+def test_pointcloud2_round_trip_with_points(tmp_path: Path):
+    """Test round-trip conversion for PointCloud2 with decoded points."""
+    # Create a PointCloud2 message with decoded points
+    test_jsonl = tmp_path / 'pointcloud2_roundtrip.jsonl'
+
+    original_message = {
+        'topic': '/lidar_roundtrip',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 0,
+        'datatype': 'sensor_msgs/msg/PointCloud2',
+        'message': {
+            'header': {'stamp': {'sec': 1234567890, 'nanosec': 0}, 'frame_id': 'lidar_frame'},
+            'height': 1,
+            'width': 1,
+            'fields': [
+                {'name': 'x', 'offset': 0, 'datatype': 7, 'count': 1},
+                {'name': 'y', 'offset': 4, 'datatype': 7, 'count': 1},
+                {'name': 'z', 'offset': 8, 'datatype': 7, 'count': 1},
+            ],
+            'is_bigendian': False,
+            'point_step': 12,
+            'row_step': 12,
+            'data': [0] * 12,  # 1 point * 12 bytes
+            'is_dense': True,
+            'points': [{'x': 1.5, 'y': 2.5, 'z': 3.5}],
+        },
+    }
+
+    test_jsonl.write_text(json.dumps(original_message))
+
+    # Convert to MCAP
+    temp_mcap = tmp_path / 'pointcloud2_roundtrip.mcap'
+    json_to_mcap(temp_mcap, test_jsonl)
+
+    # Convert back to JSON
+    from io import StringIO
+
+    from kappe.utils.mcap_to_json import mcap_to_json
+
+    output_buffer = StringIO()
+    mcap_to_json(temp_mcap, output_buffer)
+
+    # Verify output
+    output_buffer.seek(0)
+    lines = output_buffer.readlines()
+    assert len(lines) == 1
+
+    result = json.loads(lines[0].strip())
+    assert result['topic'] == '/lidar_roundtrip'
+    assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'
+    assert 'message' in result
+
+    # Check that the message structure is preserved
+    message = result['message']
+    assert 'header' in message
+    assert 'fields' in message
+    assert 'data' in message
+
+    # The roundtrip should preserve the basic structure
+    assert message['header']['frame_id'] == 'lidar_frame'
+    assert len(message['fields']) == 3
+    assert message['fields'][0]['name'] == 'x'
+
+
+def test_pointcloud2_conversion_error_handling(tmp_path: Path):
+    """Test error handling in PointCloud2 conversion."""
+    # Create a malformed PointCloud2 message that should trigger error handling
+    test_jsonl = tmp_path / 'pointcloud2_malformed.jsonl'
+
+    malformed_message = {
+        'topic': '/malformed_lidar',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 0,
+        'datatype': 'sensor_msgs/msg/PointCloud2',
+        'message': {
+            'header': {'stamp': {'sec': 1234567890, 'nanosec': 0}, 'frame_id': 'lidar'},
+            'height': 1,
+            'width': 1,
+            'fields': [{'name': 'x', 'offset': 0, 'datatype': 7, 'count': 1}],
+            'is_bigendian': False,
+            'point_step': 4,
+            'row_step': 4,
+            'data': [1, 2, 3, 4],
+            'is_dense': True,
+            'points': [{'invalid_field': 'bad_data'}],  # Invalid point structure
+        },
+    }
+
+    test_jsonl.write_text(json.dumps(malformed_message))
+
+    # Convert to MCAP - should not crash
+    output_mcap = tmp_path / 'pointcloud2_malformed_output.mcap'
+    json_to_mcap(output_mcap, test_jsonl)
+
+    # Verify MCAP file was created (fallback should work)
+    assert output_mcap.exists()
+    assert output_mcap.stat().st_size > 0

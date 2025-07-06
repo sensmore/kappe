@@ -6,6 +6,7 @@ from typing import IO, Any
 
 from mcap.reader import make_reader
 from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
+from pointcloud2 import read_points
 
 
 def _to_dict(obj: Any, *, limit_bytearray: bool = False) -> dict | None:
@@ -32,6 +33,49 @@ def _to_dict(obj: Any, *, limit_bytearray: bool = False) -> dict | None:
     return ret
 
 
+def _convert_pointcloud2_to_json(obj: Any) -> dict:
+    """Convert PointCloud2 message to JSON with decoded point data."""
+    # Get the basic message structure
+    result = _to_dict(obj)
+    if result is None:
+        return {}
+
+    # If this is a PointCloud2 message, decode the point data
+    if (
+        hasattr(obj, 'fields')
+        and hasattr(obj, 'data')
+        and hasattr(obj, 'width')
+        and hasattr(obj, 'height')
+    ):
+        try:
+            # Extract point data using pointcloud2 library
+            points = list(read_points(obj))
+            # Convert numpy structured arrays to JSON-serializable dicts
+            json_points = []
+            for point in points:
+                if hasattr(point, 'dtype') and hasattr(point, 'item'):
+                    # Handle numpy void/structured array
+                    point_dict = {}
+                    for name in point.dtype.names or []:
+                        value = point[name]
+                        # Convert numpy types to Python types for JSON serialization
+                        if hasattr(value, 'item'):
+                            point_dict[name] = value.item()
+                        else:
+                            point_dict[name] = value
+                    json_points.append(point_dict)
+                else:
+                    # Regular dict or other serializable type
+                    json_points.append(point)
+
+            result['points'] = json_points
+            del result['data']  # Remove raw data field if present
+        except (ValueError, TypeError, AttributeError):
+            # If point extraction fails, fall back to raw data
+            pass
+    return result
+
+
 def _iter_jsonl(
     file_path: Path, topics: list[str] | None = None, limit: int = 0
 ) -> Generator[dict, None, None]:
@@ -44,13 +88,27 @@ def _iter_jsonl(
             for i, record in enumerate(reader.iter_decoded_messages(topics=topics)):
                 if limit > 0 and i >= limit:
                     break
+
+                # Check if this is a PointCloud2 message
+                schema_name = record.schema.name if record.schema else None
+                is_pointcloud2 = schema_name in [
+                    'sensor_msgs/msg/PointCloud2',
+                    'sensor_msgs/PointCloud2',
+                ]
+
+                # Use specialized conversion for PointCloud2 messages
+                if is_pointcloud2:
+                    message_data = _convert_pointcloud2_to_json(record.decoded_message)
+                else:
+                    message_data = _to_dict(record.decoded_message)
+
                 yield {
                     'topic': record.channel.topic,
                     'log_time': record.message.log_time,
                     'publish_time': record.message.publish_time,
                     'sequence': record.message.sequence,
-                    'datatype': record.schema.name if record.schema else None,
-                    'message': _to_dict(record.decoded_message),
+                    'datatype': schema_name,
+                    'message': message_data,
                 }
     except Exception as e:
         raise RuntimeError(f'Error reading MCAP file: {e}') from e

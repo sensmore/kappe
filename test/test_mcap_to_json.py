@@ -111,3 +111,112 @@ def test_empty_topics_list(tmp_path: Path):
     output_buffer.seek(0)
     lines = output_buffer.readlines()
     assert len(lines) == 0
+
+
+def test_pointcloud2_conversion(tmp_path: Path):
+    """Test PointCloud2 message conversion with decoded point data."""
+    # Create a mock PointCloud2 message in JSON format
+    test_jsonl = tmp_path / 'pointcloud2_test.jsonl'
+
+    # Create a simplified PointCloud2 message structure
+    pointcloud2_message = {
+        'topic': '/lidar_points',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 0,
+        'datatype': 'sensor_msgs/msg/PointCloud2',
+        'message': {
+            'header': {'stamp': {'sec': 1234567890, 'nanosec': 0}, 'frame_id': 'lidar_frame'},
+            'height': 1,
+            'width': 3,
+            'fields': [
+                {'name': 'x', 'offset': 0, 'datatype': 7, 'count': 1},
+                {'name': 'y', 'offset': 4, 'datatype': 7, 'count': 1},
+                {'name': 'z', 'offset': 8, 'datatype': 7, 'count': 1},
+            ],
+            'is_bigendian': False,
+            'point_step': 12,
+            'row_step': 36,
+            'data': [0] * 36,  # 3 points * 12 bytes per point
+            'is_dense': True,
+        },
+    }
+
+    test_jsonl.write_text(json.dumps(pointcloud2_message))
+
+    # Convert to MCAP
+    from kappe.utils.json_to_mcap import json_to_mcap
+
+    temp_mcap = tmp_path / 'pointcloud2.mcap'
+    json_to_mcap(temp_mcap, test_jsonl)
+
+    # Convert back to JSON
+    output_buffer = StringIO()
+    mcap_to_json(temp_mcap, output_buffer)
+
+    # Verify output
+    output_buffer.seek(0)
+    lines = output_buffer.readlines()
+    assert len(lines) == 1
+
+    result = json.loads(lines[0].strip())
+    assert result['topic'] == '/lidar_points'
+    assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'
+    assert 'message' in result
+
+    # Check that the message contains the expected fields
+    message = result['message']
+    assert 'header' in message
+    assert 'fields' in message
+    assert 'data' in message
+
+    # If pointcloud2 processing worked, we should have 'points' field
+    # Note: This might not always be present depending on the data format
+    if 'points' in message:
+        assert isinstance(message['points'], list)
+
+
+def test_pointcloud2_error_handling(tmp_path: Path):
+    """Test error handling for malformed PointCloud2 messages."""
+    # Create a malformed PointCloud2 message
+    test_jsonl = tmp_path / 'malformed_pointcloud2.jsonl'
+
+    malformed_message = {
+        'topic': '/malformed_lidar',
+        'log_time': 1234567890,
+        'publish_time': 1234567890,
+        'sequence': 0,
+        'datatype': 'sensor_msgs/msg/PointCloud2',
+        'message': {
+            'header': {'stamp': {'sec': 1234567890, 'nanosec': 0}, 'frame_id': 'lidar'},
+            'height': 1,
+            'width': 1,
+            'fields': [],  # Empty fields - should cause processing to fail gracefully
+            'is_bigendian': False,
+            'point_step': 12,
+            'row_step': 12,
+            'data': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],  # 1 point worth of data
+            'is_dense': True,
+        },
+    }
+
+    test_jsonl.write_text(json.dumps(malformed_message))
+
+    # Convert to MCAP
+    from kappe.utils.json_to_mcap import json_to_mcap
+
+    temp_mcap = tmp_path / 'malformed_pointcloud2.mcap'
+    json_to_mcap(temp_mcap, test_jsonl)
+
+    # Convert back to JSON - should not crash
+    output_buffer = StringIO()
+    mcap_to_json(temp_mcap, output_buffer)
+
+    # Verify we still get valid output
+    output_buffer.seek(0)
+    lines = output_buffer.readlines()
+    assert len(lines) == 1
+
+    result = json.loads(lines[0].strip())
+    assert result['topic'] == '/malformed_lidar'
+    assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'

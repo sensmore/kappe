@@ -1,0 +1,7 @@
+point_cloud:
+  /sensor/points:
+    rotation:
+      euler_deg:
+        - 0
+        - 0
+        - 180

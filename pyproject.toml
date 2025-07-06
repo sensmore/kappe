@@ -25,7 +25,7 @@ dependencies = [
     "pyyaml>=6.0.1",
     "scipy>=1.11.1",
     "jsonargparse[signatures]>=4.35.0",
-    "pointcloud2>=0.2.1",
+    "pointcloud2>=0.2.3",
     "pydantic-yaml>=1.2.1",
     "platformdirs>=4.3.8",
 ]
@@ -37,6 +37,8 @@ repository = "https://github.com/sensmore/kappe"
 
 [project.scripts]
 kappe = "kappe.cli:main"
+mcap_to_json = "kappe.utils.mcap_to_json:main"
+json_to_mcap = "kappe.utils.json_to_mcap:main"
 
 [dependency-groups]
 dev = ["pytest-cov>=6.2.1", "pytest>=8.4.1"]
