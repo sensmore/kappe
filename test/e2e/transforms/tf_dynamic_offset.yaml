@@ -1,0 +1,7 @@
+tf:
+  offset:
+    - child_frame_id: "moving_frame"
+      translation:
+        x: 0.05
+        y: 0.0
+        z: 0.02

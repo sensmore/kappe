@@ -1,0 +1,9 @@
+tf_static:
+  offset:
+    - child_frame_id: "sensor_link"
+      translation:
+        x: 0.1
+        y: 0.2
+        z: 0.3
+      rotation:
+        quaternion: [0.0, 0.0, 0.3826834, 0.9238795]

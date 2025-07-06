@@ -1,0 +1,7 @@
+tf_static:
+  offset:
+    - child_frame_id: "camera_link"
+      translation:
+        x: 0.5
+        y: 0.0
+        z: 0.1
