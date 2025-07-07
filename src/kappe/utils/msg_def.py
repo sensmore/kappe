@@ -1,12 +1,13 @@
 import logging
+from collections import deque
 from io import BytesIO
 from pathlib import Path
 from typing import IO
+from urllib.error import URLError
+from urllib.request import urlopen
 from zipfile import ZipFile
 
 import platformdirs
-
-# TODO: vendor this
 from mcap_ros2._vendor.rosidl_adapter import parser as ros2_parser
 
 from kappe.settings import ROS2Distro
@@ -35,11 +36,8 @@ def _get_msg_def_repos(distro: ROS2Distro) -> list[tuple[str, str]]:
 
 
 def _download(url: str, buffer: IO) -> None:
-    from urllib.error import URLError
-    from urllib.request import urlopen
-
-    if not url.startswith(('http:', 'https:')):
-        raise ValueError("URL must start with 'http:' or 'https:'")
+    if not url.startswith('https://github.com/'):
+        raise ValueError("URL must start with 'https://github.com/'")
 
     try:
         with urlopen(url) as response:  # noqa: S310
@@ -126,36 +124,29 @@ def _get_msg_def(
 
 
 def get_message_definition(
-    msg_type: str,
-    distro: ROS2Distro,
-    folder: Path | None = None,
+    msg_type: str, distro: ROS2Distro, folder: Path | None = None
 ) -> str | None:
-    msg_def = _get_msg_def(msg_type, distro, folder)
-    if msg_def is None:
+    root = _get_msg_def(msg_type, distro, folder)
+    if root is None:
         return None
 
-    msg_text, dependencies = msg_def
+    msg_text, queue = root
+    queue = deque(queue)
     added_types = set()
-    while len(dependencies) > 0:
-        for dep in dependencies:
-            if dep in added_types:
-                continue
 
-            msg_def = _get_msg_def(dep, distro, folder)
-            if msg_def is None:
-                return None
+    while queue:
+        dep = queue.popleft()
+        if dep in added_types:
+            continue
 
-            dep_text, dep_dep = msg_def
+        msg_def = _get_msg_def(dep, distro, folder)
+        if msg_def is None:
+            return None
 
-            msg_text += '=' * 40 + '\n'
-            msg_text += f'MSG: {dep}\n'
-            msg_text += dep_text
-            added_types.add(dep)
-            dependencies.extend(dep_dep)
-
-        # remove added types
-        for added in added_types:
-            if added in dependencies:
-                dependencies.remove(added)
+        sub_text, sub_dep = msg_def
+        msg_text += f'{"=" * 40}\nMSG: {dep}\n{sub_text}'
+        added_types.add(dep)
+        # only enqueue unseen sub-deps
+        queue.extend(d for d in sub_dep if d not in added_types)
 
     return msg_text
