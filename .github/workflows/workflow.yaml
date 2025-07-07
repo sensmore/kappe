@@ -48,6 +48,21 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - run: uv run -p ${{ matrix.version }} ./src/kappe/cli.py version
+      
+      - name: Run pytest with coverage
+        run: uv run -p ${{ matrix.version }} pytest --cov=src/kappe --cov-report=term --cov-report=html --cov-report=xml
+      
+      - name: Generate coverage summary
+        if: always()
+        run: |
+          echo "## Coverage Report for Python ${{ matrix.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          uv run -p ${{ matrix.version }} coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Details" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          uv run -p ${{ matrix.version }} coverage report >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   build:
     if: github.event_name == 'release' || github.event.inputs.job == 'build'
