@@ -2,6 +2,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Test constants
+EXPECTED_HELP_KEYWORDS = ['usage:', 'kappe']
+
 
 def test_main_module_execution():
     """Test that the main module can be executed."""
@@ -17,7 +20,7 @@ def test_main_module_execution():
 
     # Should not fail with import errors
     assert result.returncode == 0
-    assert 'usage:' in result.stdout.lower() or 'kappe' in result.stdout.lower()
+    assert any(keyword in result.stdout.lower() for keyword in EXPECTED_HELP_KEYWORDS)
 
 
 def test_main_module_import():

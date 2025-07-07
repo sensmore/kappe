@@ -1,15 +1,17 @@
 import json
 from pathlib import Path
-from unittest.mock import patch
+from typing import TYPE_CHECKING
 
 import pytest
 
-from kappe.cli import main as kappe_main
-from kappe.utils.json_to_mcap import json_to_mcap
 from kappe.utils.mcap_to_json import mcap_to_json
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def discover_cut_cases() -> list:
+    """Discover cut E2E test cases from YAML config files."""
     cut_e2e_path = Path(__file__).parent / 'cut_e2e'
     return [
         pytest.param(yaml_path, id=str(yaml_path.relative_to(cut_e2e_path).with_suffix('')))
@@ -18,33 +20,14 @@ def discover_cut_cases() -> list:
 
 
 @pytest.mark.parametrize('case_yaml', discover_cut_cases())
-def test_cut_e2e(case_yaml: Path, tmp_path: Path) -> None:
+def test_cut_e2e(case_yaml: Path, tmp_path: Path, e2e_test_helper: 'Callable') -> None:
     """Full pipeline: JSONL → MCAP → kappe cut → multiple MCAPs → JSONL verification."""
     base = case_yaml.with_suffix('')  # strip '.yaml'
     input_jsonl = base.with_suffix('.input.jsonl')
     expected_dir = base.parent / f'{base.name}.expected'
 
-    # Create input MCAP
-    in_mcap = tmp_path / 'input.mcap'
-    json_to_mcap(in_mcap, input_jsonl)
-
-    out_dir = tmp_path / 'out'
-
-    # patch argv
-    with patch(
-        'sys.argv',
-        [
-            'kappe',
-            '--progress=false',
-            'cut',
-            '--config',
-            str(case_yaml),
-            '--output',
-            str(out_dir),
-            str(in_mcap),
-        ],
-    ):
-        kappe_main()
+    # Run E2E test using helper with 'cut' command
+    out_dir = e2e_test_helper(input_jsonl, case_yaml, tmp_path, command='cut')
 
     # Verify outputs match expected
     expected_files = list(expected_dir.glob('*.jsonl'))
@@ -79,4 +62,7 @@ def test_cut_e2e(case_yaml: Path, tmp_path: Path) -> None:
             actual_lines = [json.loads(line) for line in a if line.strip()]
             expected_lines = [json.loads(line) for line in e if line.strip()]
 
-        assert actual_lines == expected_lines, f'Content mismatch for {expected_name}'
+        assert actual_lines == expected_lines, (
+            f'Content mismatch for {expected_name}. '
+            f'Expected {len(expected_lines)} messages, got {len(actual_lines)}'
+        )
