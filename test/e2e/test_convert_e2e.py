@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 def discover_cases() -> list:
     """Discover E2E test cases from YAML config files."""
-    e2e_path = Path(__file__).parent / 'e2e'
+    e2e_path = Path(__file__).parent / 'convert'
     return [
         pytest.param(yaml_path, id=str(yaml_path.relative_to(e2e_path).with_suffix('')))
         for yaml_path in e2e_path.rglob('*.yaml')
