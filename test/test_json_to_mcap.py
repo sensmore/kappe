@@ -302,7 +302,8 @@ def test_pointcloud2_conversion_error_handling(tmp_path: Path):
 
     # Convert to MCAP - should not crash
     output_mcap = tmp_path / 'pointcloud2_malformed_output.mcap'
-    json_to_mcap(output_mcap, test_jsonl)
+    with pytest.raises(ValueError, match='Error converting PointCloud2 message'):
+        json_to_mcap(output_mcap, test_jsonl)
 
     # Verify MCAP file was created (fallback should work)
     assert output_mcap.exists()

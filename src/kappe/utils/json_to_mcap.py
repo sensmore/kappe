@@ -86,9 +86,7 @@ def _convert_json_to_pointcloud2(message_data: dict) -> dict:
                 'is_dense': pointcloud_msg.is_dense,
             }
         except (KeyError, ValueError, TypeError) as e:
-            # If conversion fails, return original message_data
-            logger.warning('Failed to convert PointCloud2 points: %s', e)
-            return message_data
+            raise ValueError(f'Error converting PointCloud2 message data: {e}') from e
 
     return message_data
 
