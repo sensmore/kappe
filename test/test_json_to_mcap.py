@@ -1,9 +1,11 @@
 import json
+from io import StringIO
 from pathlib import Path
 
 import pytest
 
 from kappe.utils.json_to_mcap import json_to_mcap
+from kappe.utils.mcap_to_json import mcap_to_json
 
 
 def test_basic_conversion(tmp_path: Path):
@@ -98,11 +100,6 @@ def test_round_trip_conversion(tmp_path: Path):
     # Convert to MCAP
     temp_mcap = tmp_path / 'temp.mcap'
     json_to_mcap(temp_mcap, input_jsonl)
-
-    # Convert back to JSONL
-    from io import StringIO
-
-    from kappe.utils.mcap_to_json import mcap_to_json
 
     output_buffer = StringIO()
     mcap_to_json(temp_mcap, output_buffer)
@@ -236,11 +233,6 @@ def test_pointcloud2_round_trip_with_points(tmp_path: Path):
     # Convert to MCAP
     temp_mcap = tmp_path / 'pointcloud2_roundtrip.mcap'
     json_to_mcap(temp_mcap, test_jsonl)
-
-    # Convert back to JSON
-    from io import StringIO
-
-    from kappe.utils.mcap_to_json import mcap_to_json
 
     output_buffer = StringIO()
     mcap_to_json(temp_mcap, output_buffer)

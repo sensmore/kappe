@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from kappe.utils.json_to_mcap import json_to_mcap
 from kappe.utils.mcap_to_json import mcap_to_json
 
 
@@ -22,9 +23,6 @@ def test_basic_conversion_with_valid_mcap(tmp_path: Path):
     input_jsonl = Path('test/e2e/simple_pass/simple_pass.input.jsonl')
     if not input_jsonl.exists():
         pytest.skip('Test data not available')
-
-    # Create temporary MCAP file from existing JSONL
-    from kappe.utils.json_to_mcap import json_to_mcap
 
     temp_mcap = tmp_path / 'test.mcap'
     json_to_mcap(temp_mcap, input_jsonl)
@@ -55,8 +53,6 @@ def test_topic_filtering(tmp_path: Path):
     if not input_jsonl.exists():
         pytest.skip('Test data not available')
 
-    from kappe.utils.json_to_mcap import json_to_mcap
-
     temp_mcap = tmp_path / 'test.mcap'
     json_to_mcap(temp_mcap, input_jsonl)
 
@@ -79,8 +75,6 @@ def test_message_limit(tmp_path: Path):
     if not input_jsonl.exists():
         pytest.skip('Test data not available')
 
-    from kappe.utils.json_to_mcap import json_to_mcap
-
     temp_mcap = tmp_path / 'test.mcap'
     json_to_mcap(temp_mcap, input_jsonl)
 
@@ -98,8 +92,6 @@ def test_empty_topics_list(tmp_path: Path):
     input_jsonl = Path('test/e2e/simple_pass/simple_pass.input.jsonl')
     if not input_jsonl.exists():
         pytest.skip('Test data not available')
-
-    from kappe.utils.json_to_mcap import json_to_mcap
 
     temp_mcap = tmp_path / 'test.mcap'
     json_to_mcap(temp_mcap, input_jsonl)
@@ -145,7 +137,6 @@ def test_pointcloud2_conversion(tmp_path: Path):
     test_jsonl.write_text(json.dumps(pointcloud2_message))
 
     # Convert to MCAP
-    from kappe.utils.json_to_mcap import json_to_mcap
 
     temp_mcap = tmp_path / 'pointcloud2.mcap'
     json_to_mcap(temp_mcap, test_jsonl)
@@ -208,7 +199,6 @@ def test_pointcloud2_error_handling(tmp_path: Path):
     test_jsonl.write_text(json.dumps(malformed_message))
 
     # Convert to MCAP
-    from kappe.utils.json_to_mcap import json_to_mcap
 
     temp_mcap = tmp_path / 'malformed_pointcloud2.mcap'
     json_to_mcap(temp_mcap, test_jsonl)
@@ -261,7 +251,6 @@ def test_mcap_to_json_with_zero_limit(tmp_path: Path):
         pytest.skip('Test data not available')
 
     # Create MCAP from existing JSONL
-    from kappe.utils.json_to_mcap import json_to_mcap
 
     temp_mcap = tmp_path / 'test.mcap'
     json_to_mcap(temp_mcap, input_jsonl)
@@ -295,7 +284,6 @@ def test_mcap_to_json_with_bytearray_limit(tmp_path: Path):
     test_jsonl.write_text(json.dumps(large_data_message))
 
     # Convert to MCAP
-    from kappe.utils.json_to_mcap import json_to_mcap
 
     temp_mcap = tmp_path / 'large_data.mcap'
     json_to_mcap(temp_mcap, test_jsonl)
