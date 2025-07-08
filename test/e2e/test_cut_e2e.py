@@ -1,15 +1,11 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
 from kappe.utils.mcap_to_json import mcap_to_json
 
 from .conftest import e2e_test_helper
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 def discover_cut_cases() -> list:
