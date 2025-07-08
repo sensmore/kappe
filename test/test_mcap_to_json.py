@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from conftest import create_test_data_message
+
+from .conftest import create_test_data_message
 
 if TYPE_CHECKING:
     from collections.abc import Callable

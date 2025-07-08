@@ -1,11 +1,9 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from .conftest import e2e_test_helper
 
 
 def discover_cases() -> list:
@@ -18,7 +16,7 @@ def discover_cases() -> list:
 
 
 @pytest.mark.parametrize('case_yaml', discover_cases())
-def test_e2e(case_yaml: Path, tmp_path: Path, e2e_test_helper: 'Callable') -> None:
+def test_e2e(case_yaml: Path, tmp_path: Path) -> None:
     """Full pipeline: JSONL → MCAP → kappe → MCAP → JSONL."""
     base = case_yaml.with_suffix('')  # strip ".yaml"
     input_jsonl = base.with_suffix('.input.jsonl')
