@@ -36,6 +36,12 @@ class CutSettings(BaseModel):
     split_on_topic: CutSplitOn | None = None
     progress: bool = True
 
+    @model_validator(mode='after')
+    def validate_splits_or_split_on_topic(self) -> 'CutSettings':
+        if self.splits is None and self.split_on_topic is None:
+            raise ValueError('splits must be set')
+        return self
+
 
 class SplitWriter:
     def __init__(self, path: str, profile: str) -> None:
@@ -144,7 +150,7 @@ def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]
         tf_static_msgs.append(message.data)
 
         # performance hack
-        if count >= tf_static_amount:
+        if count >= tf_static_amount:  # pragma: no cover, hack
             break
 
     logger.info('Collecting static tf data done')

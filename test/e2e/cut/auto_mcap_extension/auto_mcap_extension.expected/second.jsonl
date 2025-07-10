@@ -1,0 +1,1 @@
+{"topic": "/test_topic", "log_time": 1676549600000000000, "publish_time": 1676549600000000000, "sequence": 1, "datatype": "std_msgs/msg/String", "message": {"data": "second split"}}

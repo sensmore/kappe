@@ -4,8 +4,7 @@ from pathlib import Path
 import pytest
 
 from kappe.utils.mcap_to_json import mcap_to_json
-
-from .conftest import e2e_test_helper
+from test.e2e.conftest import e2e_test_helper
 
 
 def discover_cut_cases() -> list:
@@ -23,13 +22,25 @@ def test_cut_e2e(case_yaml: Path, tmp_path: Path) -> None:
     base = case_yaml.with_suffix('')  # strip '.yaml'
     input_jsonl = base.with_suffix('.input.jsonl')
     expected_dir = base.parent / f'{base.name}.expected'
+    error_json = base.with_suffix('.error.json')
 
-    # Run E2E test using helper with 'cut' command
-    out_dir = e2e_test_helper(input_jsonl, case_yaml, tmp_path, command='cut')
+    assert expected_dir.exists() != error_json.exists()
 
-    # Verify outputs match expected
+    e2e_test_helper(
+        input_jsonl,
+        command=[
+            'cut',
+            '--config',
+            str(case_yaml),
+            '--output',
+            str(tmp_path),
+            '--overwrite=true',
+        ],
+        error_json=error_json,
+    )
+
     expected_files = list(expected_dir.glob('*.jsonl'))
-    actual_files = list(out_dir.glob('*.mcap'))
+    actual_files = list(tmp_path.glob('*.mcap'))
 
     assert len(actual_files) == len(expected_files), (
         f'Expected {len(expected_files)} files, got {len(actual_files)}'
@@ -39,9 +50,6 @@ def test_cut_e2e(case_yaml: Path, tmp_path: Path) -> None:
         # Find corresponding actual file
         expected_name = expected_file.stem
         actual_mcap = None
-
-        if expected_name.endswith('.mcap'):
-            expected_name = expected_name.removesuffix('.mcap')
 
         for actual_file in actual_files:
             if actual_file.stem == expected_name:

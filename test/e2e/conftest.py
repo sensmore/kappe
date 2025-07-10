@@ -1,91 +1,66 @@
 import json
-from io import StringIO
+import tempfile
+from contextlib import nullcontext
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
+
+import pytest
+from pydantic import BaseModel
 
 from kappe.cli import main as kappe_main
 from kappe.utils.json_to_mcap import json_to_mcap
-from kappe.utils.mcap_to_json import mcap_to_json
+
+
+class E2EResultOutput(BaseModel):
+    """Output of an e2e test run."""
+
+    exception: str
+    exception_text: str
 
 
 def e2e_test_helper(
-    input_messages: list[dict[str, Any]] | Path,
-    config_content: str | Path,
-    tmp_path: Path,
-    command: str = 'convert',
-) -> list[dict[str, Any]] | Path:
+    input_jsonl: Path,
+    command: list[str],
+    *,
+    post_input_command: list[str] | None = None,
+    error_json: Path | None = None,
+) -> None:
     """Run an end-to-end test with the given input and config.
 
-    Args:
-        input_messages: List of messages or path to input JSONL file
-        config_content: Config content string or path to config file
-        tmp_path: Temporary directory path
-        command: Command to run ('convert' or 'cut')
-
-    Returns:
-        List of output messages for 'convert' command
+    :param input_jsonl: List of messages or path to input JSONL file
+    :param command: Command to run
+    :param post_input_command: Appended after the input file
+    :param error_json: Path to json containing expected exitcodes / stderr
     """
-    # Handle input - can be messages or file path
-    if isinstance(input_messages, Path):
-        input_jsonl = input_messages
-    else:
-        input_jsonl = tmp_path / 'input.jsonl'
-        with input_jsonl.open('w', encoding='utf-8') as f:
-            for message in input_messages:
-                f.write(json.dumps(message))
-                f.write('\n')
-
-    # Handle config - can be content string or file path
-    if isinstance(config_content, Path):
-        config_file = config_content
-    else:
-        config_file = tmp_path / 'config.yaml'
-        config_file.write_text(config_content)
-
     # Convert to MCAP
-    input_mcap = tmp_path / 'input.mcap'
-    json_to_mcap(input_mcap, input_jsonl)
 
-    # Run kappe command
-    output_dir = tmp_path / 'output'
-    output_dir.mkdir()
-
-    if command == 'cut':
-        argv = [
-            'kappe',
-            '--progress=false',
-            'cut',
-            '--config',
-            str(config_file),
-            '--output',
-            str(output_dir),
-            '--overwrite=true',
-            str(input_mcap),
-        ]
+    if error_json and error_json.exists():
+        output_result = E2EResultOutput(**json.loads(error_json.read_text(encoding='utf-8')))
     else:
-        argv = [
-            'kappe',
-            '--progress=false',
-            command,
-            '--config',
-            str(config_file),
-            str(input_mcap),
-            str(output_dir),
-        ]
+        output_result = None
 
-    with patch('sys.argv', argv):
-        kappe_main()
+    ctx = pytest.raises(Exception) if output_result else nullcontext()
 
-    # For cut command, return the output directory (caller handles verification)
-    if command == 'cut':
-        return output_dir
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        input_mcap = Path(tmp_dir) / 'input.mcap'
+        json_to_mcap(input_mcap, input_jsonl)
 
-    # For convert command, read and return the output messages
-    output_mcap = output_dir / 'input.mcap'
-    output_buffer = StringIO()
-    mcap_to_json(output_mcap, output_buffer)
+        with (
+            patch(
+                'sys.argv',
+                [
+                    'kappe',
+                    '--progress=false',
+                    *command,
+                    str(input_mcap),
+                    *(post_input_command or []),
+                ],
+            ),
+            ctx as rst,
+        ):
+            kappe_main()
 
-    # Parse results
-    output_buffer.seek(0)
-    return [json.loads(line.strip()) for line in output_buffer.readlines()]
+        if output_result:
+            assert rst
+            assert rst.value.__class__.__name__ == output_result.exception
+            assert output_result.exception_text in str(rst.value)

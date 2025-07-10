@@ -59,6 +59,7 @@ def convert_worker(arg: tuple[Path, Path, Settings, int]) -> None:
         return
     except Exception:
         logger.exception('Failed to convert %s', input_path)
+        raise
 
     logger.info('Done    %s', output_path)
 

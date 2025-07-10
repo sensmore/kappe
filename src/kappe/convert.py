@@ -70,8 +70,6 @@ class Converter:
         self.writer = WrappedWriter(self.f_writer)
 
         self.mcap_header = reader.get_header()
-        if self.mcap_header.profile == Profile.ROS1 and self.config.msg_folder is None:
-            logger.error('msg_folder is required for ROS1 mcap! See README for more information')
 
         self.summary: Summary | None = None
         self.statistics: Statistics | None = None
@@ -156,13 +154,15 @@ class Converter:
             # or scheme name is mapped, try to get the schema definition
             # from ROS or disk
 
-            new_data = get_message_definition(schema_name, self.config.msg_folder)
+            new_data = get_message_definition(
+                schema_name, self.config.ros_distro, self.config.msg_folder
+            )
 
             if new_data is not None:
                 schema_def = new_data
             else:
-                logger.warning('Schema "%s" not found, skipping.', schema.name)
-                return
+                msg = f'Scheme "{schema.name}" not found, skipping.'
+                raise ValueError(msg)
 
         self.schema_list[schema.name] = self.writer.register_msgdef(schema_name, schema_def)
 
@@ -325,19 +325,20 @@ class Converter:
             self.add_schema(schema)
         self.add_channel(channel)
 
+        if offset := (self.config.time_offset.get(topic) or self.config.time_offset.get('default')):
+            time_offset(offset, msg)
+
         if not self.tf_inserted:
             self.tf_inserted = True
-            tf_time = message.log_time
-            if tf_offset := (self.config.time_offset.get('default')):
-                tf_time += int(tf_offset.sec * 1e9 + tf_offset.nanosec)
-            insert_tf = tf_static_insert(self.config.tf_static, tf_time)
+            # TODO: use the time of the current message
+            insert_tf = tf_static_insert(self.config.tf_static, message.log_time)
             if insert_tf is not None:
                 self.writer.write_message(
                     topic='/tf_static',
                     schema=self.schema_list[TF_SCHEMA_NAME],
                     message=insert_tf,
-                    log_time=tf_time,
-                    publish_time=tf_time,
+                    log_time=message.log_time,
+                    publish_time=message.log_time,
                 )
 
         # handling of converters
@@ -403,9 +404,6 @@ class Converter:
             and topic in self.config.point_cloud
         ):
             point_cloud(self.config.point_cloud[topic], msg)
-
-        if offset := (self.config.time_offset.get(topic) or self.config.time_offset.get('default')):
-            time_offset(offset, msg)
 
         # Apply frame_id mapping
         if (

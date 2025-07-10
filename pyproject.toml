@@ -93,5 +93,10 @@ inline-quotes = 'single'
 [tool.ruff.format]
 quote-style = "single"
 
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+]
+
 [tool.pytest.ini_options]
 addopts = "-vv"

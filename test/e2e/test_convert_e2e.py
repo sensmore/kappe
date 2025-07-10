@@ -1,9 +1,11 @@
 import json
+from io import StringIO
 from pathlib import Path
 
 import pytest
 
-from .conftest import e2e_test_helper
+from kappe.utils.mcap_to_json import mcap_to_json
+from test.e2e.conftest import e2e_test_helper
 
 
 def discover_cases() -> list:
@@ -21,15 +23,36 @@ def test_e2e(case_yaml: Path, tmp_path: Path) -> None:
     base = case_yaml.with_suffix('')  # strip ".yaml"
     input_jsonl = base.with_suffix('.input.jsonl')
     expected_jsonl = base.with_suffix('.expected.jsonl')
+    error_json = base.with_suffix('.error.json')
 
-    # Run E2E test using helper (passes file paths directly)
-    actual_lines = e2e_test_helper(input_jsonl, case_yaml, tmp_path)
+    assert error_json.exists() != expected_jsonl.exists()
+
+    e2e_test_helper(
+        input_jsonl,
+        [
+            'convert',
+            '--config',
+            str(case_yaml),
+        ],
+        post_input_command=[
+            str(tmp_path),
+        ],
+        error_json=error_json,
+    )
+    if error_json.exists():
+        return
+
+    # Test should succeed for convert tests
 
     # Read expected results
     with expected_jsonl.open(encoding='utf-8') as e:
         expected_lines = [json.loads(line.strip()) for line in e if line.strip()]
 
-    assert actual_lines == expected_lines, (
-        f'Output mismatch for test case {case_yaml.stem}. '
-        f'Expected {len(expected_lines)} messages, got {len(actual_lines)}'
-    )
+    output_buffer = StringIO()
+    mcap_to_json(tmp_path / 'input.mcap', output_buffer)
+
+    # Parse results
+    output_buffer.seek(0)
+    actual_lines = [json.loads(line.strip()) for line in output_buffer.readlines()]
+
+    assert actual_lines == expected_lines, f'Output mismatch for test case {case_yaml.stem}. '

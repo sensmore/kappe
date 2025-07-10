@@ -1,0 +1,1 @@
+{"topic": "/tf", "log_time": 2000000000, "publish_time": 2000000000, "sequence": 1, "datatype": "tf2_msgs/msg/TFMessage", "message": {"transforms": [{"header": {"stamp": {"sec": 2, "nanosec": 0}, "frame_id": "base_link"}, "child_frame_id": "other_link", "transform": {"translation": {"x": 0.0, "y": 0.0, "z": 1.0}, "rotation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}}}]}}
