@@ -1,0 +1,8 @@
+point_cloud:
+  /sensor/points:
+    rotation:
+      quaternion:
+        - 0.7071068
+        - 0.7071068
+        - 0.0
+        - 0.0

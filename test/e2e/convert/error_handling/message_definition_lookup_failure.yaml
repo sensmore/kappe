@@ -1,0 +1,4 @@
+msg_schema:
+  mapping:
+    std_msgs/msg/String: custom_msgs/msg/NonExistentMessage
+    custom_msgs/msg/NonExistentMessage: custom_msgs/msg/NonExistentMessage

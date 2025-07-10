@@ -1,0 +1,3 @@
+{"topic": "/wanted_topic", "log_time": 1000000000, "publish_time": 1000000000, "sequence": 0, "datatype": "std_msgs/msg/String", "message": {"data": "keep this"}}
+{"topic": "/unwanted_topic", "log_time": 2000000000, "publish_time": 2000000000, "sequence": 1, "datatype": "std_msgs/msg/String", "message": {"data": "remove this"}}
+{"topic": "/another_wanted_topic", "log_time": 3000000000, "publish_time": 3000000000, "sequence": 2, "datatype": "std_msgs/msg/String", "message": {"data": "keep this too"}}

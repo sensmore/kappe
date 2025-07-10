@@ -1,0 +1,4 @@
+{"topic": "/tf_static", "log_time": 1676549454000000000, "publish_time": 1676549454000000000, "sequence": 0, "datatype": "tf2_msgs/msg/TFMessage", "message": {"transforms": [{"header": {"stamp": {"sec": 1676549454, "nanosec": 0}, "frame_id": "base_link"}, "child_frame_id": "sensor_link", "transform": {"translation": {"x": 1.0, "y": 0.0, "z": 0.0}, "rotation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}}}]}}
+{"topic": "/other", "log_time": 1676549456000000000, "publish_time": 1676549456000000000, "sequence": 1, "datatype": "std_msgs/msg/String", "message": {"data": "start"}}
+{"topic": "/marker", "log_time": 1676549458000000000, "publish_time": 1676549458000000000, "sequence": 2, "datatype": "std_msgs/msg/String", "message": {"data": "split trigger"}}
+{"topic": "/other", "log_time": 1676549460000000000, "publish_time": 1676549460000000000, "sequence": 3, "datatype": "std_msgs/msg/String", "message": {"data": "end"}}
