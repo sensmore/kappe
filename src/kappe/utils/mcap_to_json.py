@@ -85,7 +85,12 @@ def _iter_jsonl(
     try:
         with file_path.open('rb') as f:
             reader = make_reader(f, decoder_factories=[Ros2DecoderFactory()])
-            for i, record in enumerate(reader.iter_decoded_messages(topics=topics)):
+            for i, record in enumerate(
+                reader.iter_decoded_messages(
+                    topics=topics,
+                    log_time_order=False,  # Keep original order
+                )
+            ):
                 if limit > 0 and i >= limit:
                     break
 

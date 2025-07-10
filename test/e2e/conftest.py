@@ -39,7 +39,7 @@ def e2e_test_helper(
     else:
         output_result = None
 
-    ctx = pytest.raises(Exception) if output_result else nullcontext()
+    ctx = pytest.raises(Exception) if output_result else nullcontext()  # noqa: PT011
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         input_mcap = Path(tmp_dir) / 'input.mcap'

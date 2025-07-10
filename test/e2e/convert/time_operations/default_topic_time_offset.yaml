@@ -1,4 +1,0 @@
-time_offset:
-  default:
-    sec: 10
-    nanosec: 512

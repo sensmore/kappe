@@ -1,0 +1,13 @@
+time_offset:
+  default:
+    sec: 1
+    nanosec: 100000000
+  "/pub_time_topic":
+    pub_time: true
+    sec: 2
+    nanosec: 200000000
+  "/mcap_update_topic":
+    update_publish_time: true
+    update_log_time: true
+    sec: 3
+    nanosec: 300000000

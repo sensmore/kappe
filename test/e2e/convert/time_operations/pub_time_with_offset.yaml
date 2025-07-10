@@ -1,3 +1,5 @@
 time_offset:
   "/test_topic":
     pub_time: true
+    sec: 2
+    nanosec: 500000000
