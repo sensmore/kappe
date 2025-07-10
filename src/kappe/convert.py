@@ -376,29 +376,16 @@ class Converter:
         if msg_schema is None:
             return
 
-        if self.config.tf_static.remove_tf_static and topic == '/tf_static':
-            return
-
         if topic == '/tf':
-            # Apply offsets first if we have any offset configuration but no remove configuration
-            if self.config.tf.offset and not self.config.tf.remove:
-                tf_apply_offset(self.config.tf, msg)
-            # Then handle removal if configured (which also applies offsets internally)
-            elif (self.config.tf.remove or self.config.tf.offset) and not tf_remove(
-                self.config.tf, msg
-            ):
+            if not tf_remove(self.config.tf, msg):
                 # remove empty tf messages
                 return
+            tf_apply_offset(self.config.tf, msg)
         elif topic == '/tf_static':
-            # Apply offsets first if we have any offset configuration but no remove configuration
-            if self.config.tf_static.offset and not self.config.tf_static.remove:
-                tf_apply_offset(self.config.tf_static, msg)
-            # Then handle removal if configured (which also applies offsets internally)
-            elif (self.config.tf_static.remove or self.config.tf_static.offset) and not tf_remove(
-                self.config.tf_static, msg
-            ):
+            if not tf_remove(self.config.tf_static, msg):
                 # remove empty tf messages
                 return
+            tf_apply_offset(self.config.tf_static, msg)
         elif (
             schema_name in ['sensor_msgs/msg/PointCloud2', 'sensor_msgs/PointCloud2']
             and topic in self.config.point_cloud
@@ -478,32 +465,43 @@ class Converter:
             if count == tf_static_amount:
                 break
 
-    def process_file(self, tqdm_idx: int = 0) -> None:  # noqa: PLR0912
-        start_time = None
-        end_time = None
-        duration = None
-        if self.statistics:
-            start_time = self.statistics.message_start_time / 1e9
-            if self.config.time_start is not None:
-                start_time = max(start_time, self.config.time_start)
+    def _calculate_start_end(
+        self,
+        start_time_ns: float,
+        end_time_ns: float | None,
+    ) -> tuple[float, float | None]:
+        start_sec = start_time_ns / 1e9
+        end_sec: float | None = (end_time_ns + 1) / 1e9 if end_time_ns is not None else None
 
-            end_time = self.statistics.message_end_time / 1e9
-            if self.config.time_end is not None:
-                conf_end_time = self.config.time_end
-                if conf_end_time < 100000000:
-                    conf_end_time = float(start_time + conf_end_time)
-                end_time = min(end_time, conf_end_time)
-            duration = end_time - start_time
+        if (cfg_start := self.config.time_start) is not None:
+            start_sec = max(start_sec, cfg_start)
+
+        if (cfg_end := self.config.time_end) is not None:
+            # Treat small numbers as "duration"
+            cfg_end = start_sec + cfg_end if cfg_end < 100_000_000 else cfg_end
+            end_sec = min(filter(None, (end_sec, cfg_end)))
+
+        return start_sec, end_sec
+
+    def process_file(self, tqdm_idx: int = 0) -> None:
+        start_time_sec = None
+        end_time_sec = None
+        duration_sec = None
+        if self.statistics:
+            start_time_sec, end_time_sec = self._calculate_start_end(
+                self.statistics.message_start_time, self.statistics.message_end_time
+            )
+            if end_time_sec:
+                duration_sec = end_time_sec - start_time_sec
 
             if self.config.keep_all_static_tf:
-                self.collect_tf_static(start_time)
+                self.collect_tf_static(start_time_sec)
 
         filtered_channels = self.get_selected_channels()
-
         msg_iter = self.read_ros_messaged(
             topics=filtered_channels,
-            start_time=start_time if self.config.time_start else None,
-            end_time=end_time if self.config.time_end else None,
+            start_time=start_time_sec if self.config.time_start else None,
+            end_time=end_time_sec if self.config.time_end else None,
         )
         if msg_iter is None:
             raise ValueError('msg_iter is None')
@@ -517,34 +515,27 @@ class Converter:
         logger.debug('Filtered topics: %s', filtered_channels)
 
         with tqdm(
-            total=duration,
+            total=duration_sec,
             position=tqdm_idx,
             desc=f'{self.input_path.name}',
-            unit='secs' if duration else 'msgs',
+            unit='secs' if duration_sec else 'msgs',
             bar_format='{l_bar}{bar}| {n:.02f}/{total:.02f} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'  # noqa: E501
-            if duration
+            if duration_sec
             else None,
             disable=not self.config.progress,
         ) as pbar:
             for msg in msg_iter:
                 message = msg.message
                 log_time = message.log_time
-                if start_time is None:
-                    start_time = log_time / 1e9
+                if start_time_sec is None:
+                    start_time_sec, end_time_sec = self._calculate_start_end(log_time, None)
 
-                if self.config.time_start and self.config.time_start * 1e9 > log_time:
+                if start_time_sec * 1e9 > log_time:
                     continue
-                if self.config.time_end:
-                    if (
-                        self.config.time_end < 100000000
-                        and (start_time + self.config.time_end) * 1e9 < log_time
-                    ):
-                        pass
-                    elif self.config.time_end * 1e9 < log_time:
-                        break
-
-                if duration is not None:
-                    pbar.update((log_time / 1e9 - start_time) - pbar.n)
+                if end_time_sec and end_time_sec * 1e9 < log_time:
+                    break
+                if duration_sec is not None:
+                    pbar.update((log_time / 1e9 - start_time_sec) - pbar.n)
                 else:
                     pbar.update(1)
 

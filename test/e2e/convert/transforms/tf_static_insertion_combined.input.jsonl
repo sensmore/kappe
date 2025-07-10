@@ -1,0 +1,3 @@
+{"topic": "/tf_static", "log_time": 0, "publish_time": 0, "sequence": 0, "datatype": "tf2_msgs/msg/TFMessage", "message": {"transforms": []}}
+{"topic": "/tf", "log_time": 1000000000, "publish_time": 1000000000, "sequence": 0, "datatype": "tf2_msgs/msg/TFMessage", "message": {"transforms": []}}
+{"topic": "/other_topic", "log_time": 2000000000, "publish_time": 2000000000, "sequence": 1, "datatype": "std_msgs/msg/String", "message": {"data": "unaffected message"}}

@@ -1,3 +1,2 @@
 {"topic": "/test_1", "log_time": 1676549450000000000, "publish_time": 1676549450000000000, "sequence": 1, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
 {"topic": "/test_2", "log_time": 1676549500000000000, "publish_time": 1676549500000000000, "sequence": 2, "datatype": "std_msgs/msg/Bool", "message": {"data": false}}
-{"topic": "/test_3", "log_time": 1676549600000000000, "publish_time": 1676549600000000000, "sequence": 3, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}

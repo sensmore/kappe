@@ -1,9 +1,9 @@
 from enum import Enum
 from multiprocessing import cpu_count
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel
 
 from kappe.module.pointcloud import SettingPointCloud
 from kappe.module.tf import SettingTF
@@ -71,7 +71,14 @@ class SettingPlugin(BaseModel):
     settings: dict[str, Any] = {}
 
 
-class Settings(BaseModel):
+def _tf_no_insert(tf: SettingTF) -> SettingTF:
+    if tf.insert is not None:
+        raise ValueError('Setting `insert` for `tf` is not supported. ')
+
+    return tf
+
+
+class Settings(BaseModel, frozen=True):
     """
     Settings.
 
@@ -86,8 +93,9 @@ class Settings(BaseModel):
     :ivar msg_schema: Schema settings.
     :ivar time_offset: Mapping of topic names to time offset settings.
     :ivar plugins: List of plugins.
-    :ivar time_start: Start time of the recording.
-    :ivar time_end: End time of the recording.
+    :ivar time_start: Start time of the recording in seconds.
+    :ivar time_end: End time of the recording in seconds
+        If less then 100_000_000 it is interpreted as a duration
     :ivar keep_all_static_tf: Keep all static TF frames.
     :ivar msg_folder: Folder containing message definitions, defaults to ./msgs/.
     :ivar progress: Show progress bar.
@@ -98,7 +106,8 @@ class Settings(BaseModel):
 
     general: SettingGeneral = SettingGeneral()
     topic: SettingTopic = SettingTopic()
-    tf: SettingTF = SettingTF()
+    tf: Annotated[SettingTF, AfterValidator(_tf_no_insert)] = SettingTF()
+
     tf_static: SettingTF = SettingTF()
     msg_schema: SettingSchema = SettingSchema()
 

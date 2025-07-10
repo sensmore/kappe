@@ -1,3 +1,0 @@
-tf_static:
-  remove:
-    - "child_frame_to_remove"

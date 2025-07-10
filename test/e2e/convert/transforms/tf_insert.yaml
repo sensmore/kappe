@@ -1,8 +1,0 @@
-tf_static:
-  insert:
-    - frame_id: "base_link"
-      child_frame_id: "new_frame"
-      translation:
-        x: 1.0
-        y: 2.0
-        z: 3.0

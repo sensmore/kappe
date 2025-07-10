@@ -1,6 +1,7 @@
-from typing import Any
+import warnings
+from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from scipy.spatial.transform import Rotation
 
 from kappe.utils.settings import SettingRotation, SettingTranslation
@@ -124,10 +125,22 @@ class SettingTF(BaseModel):
     :ivar offset: List of transforms to apply offsets to.
     """
 
-    remove: list[str] | str | None = None
-    remove_tf_static: bool = False
+    remove: list[str] | Literal['all'] | None = None
+    remove_tf_static: bool = Field(
+        default=False, deprecated=True, description='Deprecated: Use `remove: all` instead.'
+    )
     insert: list[SettingTFInsert] | None = None
     offset: list[SettingTFOffset] | None = None
+
+    def model_post_init(self, __context) -> None:  # noqa: ANN001, PYI063
+        if self.remove_tf_static:
+            warnings.warn(
+                'Setting `remove_tf_static` is deprecated. '
+                'Use `remove: all` instead to remove all static transforms.',
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.remove = 'all'
 
 
 def tf_static_insert(cfg: SettingTF, stamp_ns: int) -> None | Any:
@@ -218,9 +231,6 @@ def tf_apply_offset(cfg: SettingTF, msg: WrappedDecodedMessage) -> None:
 
 def tf_remove(cfg: SettingTF, msg: WrappedDecodedMessage) -> bool:
     ros_msg = msg.decoded_message
-
-    # Apply offsets before any removal operations
-    tf_apply_offset(cfg, msg)
 
     if cfg.remove:
         if isinstance(cfg.remove, str) and cfg.remove.lower() == 'all':

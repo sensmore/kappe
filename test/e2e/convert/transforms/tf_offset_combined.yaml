@@ -1,9 +1,18 @@
 tf_static:
   offset:
-    - child_frame_id: "sensor_link"
+    - child_frame_id: "static_sensor_link"
       translation:
         x: 0.1
         y: 0.2
         z: 0.3
       rotation:
         quaternion: [0.0, 0.0, 0.3826834, 0.9238795]
+tf:
+  offset:
+    - child_frame_id: "dynamic_moving_frame"
+      translation:
+        x: 0.05
+        y: 0.0
+        z: 0.02
+      rotation:
+        quaternion: [0.0, 0.0, 0.2588190, 0.9659258]

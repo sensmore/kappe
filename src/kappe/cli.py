@@ -125,7 +125,7 @@ class KappeCLI:
         """
         self.progress = progress
 
-    def convert(  # noqa: PLR0913, PLR0912, PLR0915
+    def convert(  # noqa: PLR0913, PLR0912
         self,
         input: list[Path] | Path,  # noqa: A002
         output: Path,
@@ -191,24 +191,25 @@ class KappeCLI:
         if plugins is None:
             plugins = []
 
-        config = Settings()
-        config.general = general
-        config.topic = topic
-        config.tf_static = tf_static
-        config.tf = tf
-        config.msg_schema = msg_schema
-        config.point_cloud = point_cloud
-        config.time_offset = time_offset
-        config.plugins = plugins
-        config.time_start = time_start
-        config.time_end = time_end
-        config.keep_all_static_tf = keep_all_static_tf
-        config.msg_folder = msg_folder
-        config.plugin_folder = plugin_folder
-        config.progress = self.progress
-        config.save_metadata = save_metadata
-        config.frame_id_mapping = frame_id_mapping
-        config.ros_distro = ros_distro
+        config = Settings(
+            general=general,
+            topic=topic,
+            tf_static=tf_static,
+            tf=tf,
+            msg_schema=msg_schema,
+            point_cloud=point_cloud,
+            time_offset=time_offset,
+            plugins=plugins,
+            time_start=time_start,
+            time_end=time_end,
+            keep_all_static_tf=keep_all_static_tf,
+            msg_folder=msg_folder,
+            plugin_folder=plugin_folder,
+            progress=self.progress,
+            save_metadata=save_metadata,
+            frame_id_mapping=frame_id_mapping,
+            ros_distro=ros_distro,
+        )
 
         # check for msgs folder
         if msg_folder is not None and not msg_folder.exists():
