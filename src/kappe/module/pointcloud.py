@@ -35,7 +35,7 @@ def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
         org_len = len(cloud)
 
         if cfg.remove_zero:
-            cloud = cloud[np.logical_and(cloud['x'] != 0.0, cloud['y'] != 0.0, cloud['z'] != 0.0)]
+            cloud = cloud[np.logical_or(cloud['x'] != 0.0, cloud['y'] != 0.0, cloud['z'] != 0.0)]
 
         if cfg.ego_bounds is not None:
             # Create individual boolean masks for each condition
