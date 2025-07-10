@@ -287,6 +287,7 @@ class KappeCLI:
             keep_tf_tree=keep_tf_tree,
             splits=splits,
             split_on_topic=split_on_topic,
+            progress=self.progress,
         )
 
         cutter(mcap, output, config)
