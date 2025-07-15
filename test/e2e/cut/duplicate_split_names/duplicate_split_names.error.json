@@ -1,0 +1,4 @@
+{
+    "exception": "ValueError",
+    "exception_text": "Duplicate split names"
+}

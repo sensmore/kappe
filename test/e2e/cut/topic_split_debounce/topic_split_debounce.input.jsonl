@@ -1,0 +1,6 @@
+{"topic": "/other", "log_time": 1676549454000000000, "publish_time": 1676549454000000000, "sequence": 0, "datatype": "std_msgs/msg/String", "message": {"data": "start"}}
+{"topic": "/marker", "log_time": 1676549456000000000, "publish_time": 1676549456000000000, "sequence": 1, "datatype": "std_msgs/msg/String", "message": {"data": "first split trigger"}}
+{"topic": "/marker", "log_time": 1676549458000000000, "publish_time": 1676549458000000000, "sequence": 2, "datatype": "std_msgs/msg/String", "message": {"data": "too soon - should be debounced"}}
+{"topic": "/other", "log_time": 1676549460000000000, "publish_time": 1676549460000000000, "sequence": 3, "datatype": "std_msgs/msg/String", "message": {"data": "middle"}}
+{"topic": "/marker", "log_time": 1676549462000000000, "publish_time": 1676549462000000000, "sequence": 4, "datatype": "std_msgs/msg/String", "message": {"data": "second split trigger"}}
+{"topic": "/other", "log_time": 1676549464000000000, "publish_time": 1676549464000000000, "sequence": 5, "datatype": "std_msgs/msg/String", "message": {"data": "end"}}

@@ -1,0 +1,12 @@
+point_cloud:
+  /sensor/points:
+    ego_bounds:
+      x:
+        min: -1.0
+        max: 2.0
+      y:
+        min: -0.5
+        max: 0.5
+      z:
+        min: -0.2
+        max: 1.5

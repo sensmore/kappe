@@ -1,0 +1,5 @@
+tf_static:
+  remove:
+    - "static_frame_to_remove"
+tf:
+  remove: ["dynamic_frame_to_remove", "camera_link"]

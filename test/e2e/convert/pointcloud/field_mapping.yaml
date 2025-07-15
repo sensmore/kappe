@@ -1,0 +1,4 @@
+point_cloud:
+  /sensor/points:
+    field_mapping:
+      AzimuthAngle: azimuth_angle
