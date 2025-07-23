@@ -1,10 +1,3 @@
-"""
-Error handling utilities for kappe.
-
-This module provides tools for handling errors in a consistent way throughout
-the application, including error reporting and graceful shutdown.
-"""
-
 import logging
 import os
 import sys
