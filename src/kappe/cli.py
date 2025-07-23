@@ -1,7 +1,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Optional, Union
 
 from jsonargparse import CLI
 from tqdm import tqdm
@@ -15,29 +15,31 @@ from kappe.module.tf import SettingTF
 from kappe.module.timing import SettingTimeOffset
 from kappe.plugin import load_plugin
 from kappe.settings import SettingGeneral, SettingPlugin, Settings, SettingSchema, SettingTopic
+from kappe.utils.error_handling import capture_exceptions, handle_errors
+from kappe.utils.exceptions import ConversionError, KappeError
+from kappe.utils.logging import get_logger, setup_logging
 
+capture_exceptions()
 
-class TqdmLoggingHandler(logging.Handler):
-    def emit(self, record: Any) -> None:
-        try:
-            msg = self.format(record)
-            tqdm.write(msg)
-            self.flush()
-        except Exception:  # noqa: BLE001
-            self.handleError(record)
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)-7s | %(name)s | %(message)s',
-    datefmt='%H:%M:%S',
-    handlers=[TqdmLoggingHandler()],
+setup_logging(
+    level="INFO",
+    log_format="%(levelname)-7s | %(name)s | %(message)s",
+    date_format="%H:%M:%S",
+    show_line_number=False,
+    capture_warnings=True,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
+@handle_errors(exit_on_error=False, show_traceback=True)
 def convert_worker(arg: tuple[Path, Path, Settings, int]) -> None:
+    """
+    Worker function for converting MCAP files.
+    
+    Args:
+        arg: Tuple containing (input_path, output_path, config, tqdm_idx)
+    """
     # TODO: dataclass
     input_path, output_path, config, tqdm_idx = arg
 
@@ -50,12 +52,15 @@ def convert_worker(arg: tuple[Path, Path, Settings, int]) -> None:
     except KeyboardInterrupt:
         logger.info('WORKER: Keyboard interrupt')
         return
-    except Exception:
-        logger.exception('Failed to convert %s', input_path)
+    except Exception as e:
+        logger.exception('Failed to convert %s: %s', input_path, str(e))
+        raise ConversionError(f"Failed to convert {input_path}", file_path=str(input_path)) from e
 
     logger.info('Done    %s', output_path)
 
 
+@handle_errors(exit_on_error=True, exit_code=1, show_traceback=True, 
+             expected_exceptions=[KappeError, FileNotFoundError, PermissionError])
 def convert_process(  # noqa: PLR0912
     config: Settings,
     input_path: Path | list[Path],
@@ -63,6 +68,19 @@ def convert_process(  # noqa: PLR0912
     *,
     overwrite: bool,
 ) -> None:
+    """
+    Process the conversion of MCAP files.
+    
+    Args:
+        config: The conversion settings
+        input_path: The input file path(s)
+        output_path: The output directory
+        overwrite: Whether to overwrite existing files
+    
+    Raises:
+        FileError: If input/output paths are invalid
+        ConversionError: If conversion fails
+    """
     tasks: list[tuple[Path, Path, Settings, int]] = []
 
     if isinstance(input_path, list):
@@ -237,6 +255,7 @@ class KappeCLI:
                 overwrite=overwrite,
             )
 
+    @handle_errors(exit_on_error=True, exit_code=1, show_traceback=True)
     def cut(  # noqa: PLR0913
         self,
         mcap: Path,
@@ -263,8 +282,10 @@ class KappeCLI:
         split_on_topic = None
 
         if output.exists() and not overwrite:
-            logger.error('Output folder already exists. Delete or use --overwrite=true.')
-            return
+            raise FileError(
+                "Output folder already exists. Delete or use --overwrite=true.",
+                file_path=str(output)
+            )
 
         if topic is not None:
             split_on_topic = CutSplitOn(
@@ -285,8 +306,17 @@ class KappeCLI:
         print('Python: ', sys.version)  # noqa: T201
 
 
+@handle_errors(exit_on_error=True, exit_code=1, show_traceback=True)
 def main() -> None:
-    CLI(KappeCLI, version=__version__)
+    """Main entry point for the Kappe CLI application."""
+    try:
+        CLI(KappeCLI, version=__version__)
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user. Exiting...")
+        sys.exit(130)  # Standard exit code for SIGINT
+    except Exception as e:
+        logger.critical(f"Unexpected error: {str(e)}", exc_info=True)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
