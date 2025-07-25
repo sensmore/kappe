@@ -49,17 +49,17 @@ def convert_worker(arg: tuple[Path, Path, Settings, int]) -> None:
     input_path, output_path, config, tqdm_idx = arg
 
     logger.info('Writing %s', output_path)
+    conv = Converter(config, input_path, output_path)
     try:
-        conv = Converter(config, input_path, output_path)
         conv.process_file(tqdm_idx)
-        conv.finish()
-
     except KeyboardInterrupt:
         logger.info('WORKER: Keyboard interrupt')
         return
     except Exception:
         logger.exception('Failed to convert %s', input_path)
         raise
+    finally:
+        conv.finish()
 
     logger.info('Done    %s', output_path)
 

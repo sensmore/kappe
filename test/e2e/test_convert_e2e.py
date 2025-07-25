@@ -7,6 +7,13 @@ import pytest
 from kappe.utils.mcap_to_json import mcap_to_json
 from test.e2e.conftest import e2e_test_helper
 
+# Malformation types for testing robustness
+MALFORMATION_TYPES = [
+    pytest.param({}, id='normal'),
+    pytest.param({'skip_index': True}, id='missing_index'),
+    # pytest.param({'skip_footer': True}, id='missing_footer'),  # noqa: ERA001 TODO
+]
+
 
 def discover_cases() -> list:
     """Discover E2E test cases from YAML config files."""
@@ -18,7 +25,8 @@ def discover_cases() -> list:
 
 
 @pytest.mark.parametrize('case_yaml', discover_cases())
-def test_e2e(case_yaml: Path, tmp_path: Path) -> None:
+@pytest.mark.parametrize('malformed_options', MALFORMATION_TYPES)
+def test_e2e(case_yaml: Path, malformed_options: dict, tmp_path: Path) -> None:
     """Full pipeline: JSONL → MCAP → kappe → MCAP → JSONL."""
     base = case_yaml.with_suffix('')  # strip ".yaml"
     input_jsonl = base.with_suffix('.input.jsonl')
@@ -38,15 +46,10 @@ def test_e2e(case_yaml: Path, tmp_path: Path) -> None:
             str(tmp_path),
         ],
         error_json=error_json,
+        malformed_options=malformed_options,
     )
     if error_json.exists():
         return
-
-    # Test should succeed for convert tests
-
-    # Read expected results
-    with expected_jsonl.open(encoding='utf-8') as e:
-        expected_lines = [json.loads(line.strip()) for line in e if line.strip()]
 
     output_buffer = StringIO()
     mcap_to_json(tmp_path / 'input.mcap', output_buffer)
@@ -54,5 +57,9 @@ def test_e2e(case_yaml: Path, tmp_path: Path) -> None:
     # Parse results
     output_buffer.seek(0)
     actual_lines = [json.loads(line.strip()) for line in output_buffer.readlines()]
+
+    # Read expected results
+    with expected_jsonl.open(encoding='utf-8') as e:
+        expected_lines = [json.loads(line.strip()) for line in e if line.strip()]
 
     assert actual_lines == expected_lines, f'Output mismatch for test case {case_yaml.stem}. '

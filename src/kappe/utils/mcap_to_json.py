@@ -11,7 +11,7 @@ from pointcloud2 import read_points
 
 def _to_dict(obj: Any, *, limit_bytearray: bool = False) -> dict | None:
     if not hasattr(obj, '__slots__'):
-        return None
+        return obj
     ret = {}
     for slot in obj.__slots__:
         value = getattr(obj, slot)

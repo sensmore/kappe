@@ -24,6 +24,7 @@ def e2e_test_helper(
     *,
     post_input_command: list[str] | None = None,
     error_json: Path | None = None,
+    malformed_options: dict | None = None,
 ) -> None:
     """Run an end-to-end test with the given input and config.
 
@@ -31,6 +32,7 @@ def e2e_test_helper(
     :param command: Command to run
     :param post_input_command: Appended after the input file
     :param error_json: Path to json containing expected exitcodes / stderr
+    :param malformed_options: Options for creating malformed MCAP files for testing
     """
     # Convert to MCAP
 
@@ -43,7 +45,7 @@ def e2e_test_helper(
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         input_mcap = Path(tmp_dir) / 'input.mcap'
-        json_to_mcap(input_mcap, input_jsonl)
+        json_to_mcap(input_mcap, input_jsonl, **(malformed_options or {}))
 
         with (
             patch(

@@ -6,6 +6,13 @@ import pytest
 from kappe.utils.mcap_to_json import mcap_to_json
 from test.e2e.conftest import e2e_test_helper
 
+# Malformation types for testing robustness
+MALFORMATION_TYPES = [
+    pytest.param({}, id='normal'),
+    pytest.param({'skip_index': True}, id='missing_index'),
+    # pytest.param({'skip_footer': True}, id='missing_footer'), # noqa: ERA001 TODO
+]
+
 
 def discover_cut_cases() -> list:
     """Discover cut E2E test cases from YAML config files."""
@@ -17,7 +24,8 @@ def discover_cut_cases() -> list:
 
 
 @pytest.mark.parametrize('case_yaml', discover_cut_cases())
-def test_cut_e2e(case_yaml: Path, tmp_path: Path) -> None:
+@pytest.mark.parametrize('malformed_options', MALFORMATION_TYPES)
+def test_cut_e2e(case_yaml: Path, malformed_options: dict, tmp_path: Path) -> None:
     """Full pipeline: JSONL → MCAP → kappe cut → multiple MCAPs → JSONL verification."""
     base = case_yaml.with_suffix('')  # strip '.yaml'
     input_jsonl = base.with_suffix('.input.jsonl')
@@ -37,6 +45,7 @@ def test_cut_e2e(case_yaml: Path, tmp_path: Path) -> None:
             '--overwrite=true',
         ],
         error_json=error_json,
+        malformed_options=malformed_options,
     )
 
     expected_files = list(expected_dir.glob('*.jsonl'))

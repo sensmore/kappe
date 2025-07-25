@@ -1,14 +1,16 @@
+import io
 import json
 import logging
 from pathlib import Path
 
 import numpy as np
-from mcap_ros2.writer import Writer
+from mcap.writer import IndexType
 from pointcloud2 import create_cloud, dtype_from_fields
 from pydantic import BaseModel
 
 from kappe.settings import ROS2Distro
 from kappe.utils.msg_def import get_message_definition
+from kappe.writer import WrappedWriter
 
 logger = logging.getLogger(__name__)
 
@@ -91,12 +93,29 @@ def _convert_json_to_pointcloud2(message_data: dict) -> dict:
     return message_data
 
 
-def json_to_mcap(output_file: Path, json_path: Path) -> None:
+def json_to_mcap(
+    output_file: Path,
+    json_path: Path,
+    *,
+    skip_index: bool = False,
+    skip_footer: bool = False,
+) -> None:
+    """Convert JSONL to MCAP with optional malformation for testing.
+
+    Args:
+        output_file: Path to write MCAP file
+        json_path: Path to input JSONL file
+        skip_index: If True, creates unindexed MCAP (no summary/index sections)
+        skip_footer: If True, creates MCAP without footer (for testing)
+    """
     mcap_data = _load_json_and_validate(json_path)
 
-    with output_file.open('wb') as stream:
-        writer = Writer(stream)
-
+    with (
+        output_file.open('wb') as stream,
+        WrappedWriter(
+            stream, index_types=IndexType.ALL if not skip_index else IndexType.NONE
+        ) as writer,
+    ):
         schemas = {}
 
         for message in mcap_data.messages:
@@ -112,12 +131,10 @@ def json_to_mcap(output_file: Path, json_path: Path) -> None:
 
             # Check if this is a PointCloud2 message and convert if needed
             message_data = message.message
-            is_pointcloud2 = message.datatype in [
+            if message.datatype in {
                 'sensor_msgs/msg/PointCloud2',
                 'sensor_msgs/PointCloud2',
-            ]
-
-            if is_pointcloud2:
+            }:
                 message_data = _convert_json_to_pointcloud2(message_data)
 
             writer.write_message(
@@ -129,7 +146,11 @@ def json_to_mcap(output_file: Path, json_path: Path) -> None:
                 sequence=message.sequence,
             )
 
-        writer.finish()
+    if skip_footer:
+        # destroy the footer
+        with output_file.open('rb+') as f:
+            f.seek(-(1), io.SEEK_END)
+            f.truncate()
 
 
 def main() -> None:
@@ -138,6 +159,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='Convert JSON to MCAP.')
     parser.add_argument('file', type=Path, help='Path to the input JSONL file.')
     parser.add_argument('-o', '--output', type=Path, default=None, help='Path to the MCAP file.')
+    parser.add_argument(
+        '--skip-index', action='store_true', help='Create unindexed MCAP (for testing)'
+    )
+    parser.add_argument(
+        '--skip-footer', action='store_true', help='Create MCAP without footer (for testing)'
+    )
 
     args = parser.parse_args()
     json_file: Path = args.file
@@ -145,7 +172,12 @@ def main() -> None:
     if output_file is None:
         output_file = json_file.with_suffix('.mcap')
 
-    json_to_mcap(output_file, json_file)
+    json_to_mcap(
+        output_file,
+        json_file,
+        skip_index=args.skip_index,
+        skip_footer=args.skip_footer,
+    )
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ import mcap
 from mcap.exceptions import McapError
 from mcap.records import Channel, Message, Schema
 from mcap.well_known import SchemaEncoding
-from mcap.writer import CompressionType
+from mcap.writer import CompressionType, IndexType
 from mcap.writer import Writer as McapWriter
 from mcap_ros2._dynamic import (
     DecoderFunction,
@@ -100,12 +100,14 @@ class WrappedWriter:
         chunk_size: int = 1024 * 1024,
         compression: CompressionType = CompressionType.ZSTD,
         enable_crcs: bool = True,
+        index_types: IndexType = IndexType.ALL,
     ) -> None:
         self._writer = McapWriter(
             output=output,
             chunk_size=chunk_size,
             compression=compression,
             enable_crcs=enable_crcs,
+            index_types=index_types,
         )
         self._channel_ids: dict[str, int] = {}
         self._writer.start(profile='ros2', library=_library_identifier())
