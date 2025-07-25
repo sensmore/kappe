@@ -19,7 +19,6 @@ from kappe.module.pointcloud import point_cloud
 from kappe.module.qos import DurabilityPolicy, Qos, dump_qos_list, parse_qos_list
 from kappe.module.tf import (
     TF_SCHEMA_NAME,
-    TF_SCHEMA_TEXT,
     tf_apply_offset,
     tf_remove,
     tf_static_insert,
@@ -91,8 +90,6 @@ class Converter:
         # Set of channel ids already processed
         self.channel_seen: set[int] = set()
 
-        self.tf_inserted = False
-
         self.init_schema()
 
         self.init_channel()
@@ -119,9 +116,14 @@ class Converter:
 
         if (self.config.tf or self.config.tf_static) and TF_SCHEMA_NAME not in self.schema_list:
             # insert tf schema
+            tf_schema_text = get_message_definition(
+                TF_SCHEMA_NAME, self.config.ros_distro, self.config.msg_folder
+            )
+            if tf_schema_text is None:
+                raise ValueError(f'TF schema "{TF_SCHEMA_NAME}" not found')
             self.schema_list[TF_SCHEMA_NAME] = self.writer.register_msgdef(
                 TF_SCHEMA_NAME,
-                TF_SCHEMA_TEXT,
+                tf_schema_text,
             )
 
     def add_schema(self, schema: Schema) -> None:
@@ -170,22 +172,6 @@ class Converter:
         if self.summary is not None:
             for channel in self.summary.channels.values():
                 self.add_channel(channel)
-
-        if self.config.tf and '/tf' not in self.writer._channel_ids:  # noqa: SLF001
-            # insert tf schema
-            self.writer._writer.register_channel(  # noqa: SLF001
-                topic='/tf',
-                message_encoding='cdr',
-                schema_id=self.schema_list[TF_SCHEMA_NAME].id,
-            )
-
-        if self.config.tf_static and '/tf_static' not in self.writer._channel_ids:  # noqa: SLF001
-            # insert tf schema
-            self.writer._writer.register_channel(  # noqa: SLF001
-                topic='/tf_static',
-                message_encoding='cdr',
-                schema_id=self.schema_list[TF_SCHEMA_NAME].id,
-            )
 
     def add_channel(self, channel: Channel) -> None:
         if channel.id in self.channel_seen:
