@@ -40,6 +40,9 @@ kappe = "kappe.cli:main"
 mcap_to_json = "kappe.utils.mcap_to_json:main"
 json_to_mcap = "kappe.utils.json_to_mcap:main"
 
+[project.optional-dependencies]
+plugin_image = ["pillow>=8.0.0"]
+
 [dependency-groups]
 dev = ["pytest-cov>=6.2.1", "pytest>=8.4.1"]
 

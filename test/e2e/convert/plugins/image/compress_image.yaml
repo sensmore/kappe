@@ -1,0 +1,6 @@
+plugins:
+  - name: image.CompressImage
+    input_topic: /camera/image_raw
+    output_topic: /camera/image_raw
+    settings:
+      quality: 95
