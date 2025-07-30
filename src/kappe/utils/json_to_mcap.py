@@ -158,7 +158,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description='Convert JSON to MCAP.')
     parser.add_argument('file', type=Path, help='Path to the input JSONL file.')
-    parser.add_argument('-o', '--output', type=Path, default=None, help='Path to the MCAP file.')
+    parser.add_argument('-o', '--output', type=Path, required=True, help='Path to the MCAP file.')
     parser.add_argument(
         '--skip-index', action='store_true', help='Create unindexed MCAP (for testing)'
     )
@@ -169,8 +169,6 @@ def main() -> None:
     args = parser.parse_args()
     json_file: Path = args.file
     output_file: Path = args.output
-    if output_file is None:
-        output_file = json_file.with_suffix('.mcap')
 
     json_to_mcap(
         output_file,

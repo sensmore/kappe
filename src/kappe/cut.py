@@ -145,6 +145,8 @@ def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]
     for count, (_, _, message) in enumerate(
         reader.iter_messages(
             topics=['/tf_static'],
+            # Keep original order
+            log_time_order=False,
         )
     ):
         tf_static_msgs.append(message.data)
@@ -198,6 +200,8 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
         for schema, channel, message in reader.iter_messages(
             start_time=min_start_time,
             end_time=max_end_time,
+            # Keep original order
+            log_time_order=False,
         ):
             if schema is None:
                 continue
@@ -236,7 +240,13 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
             writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
         # TODO: check if topic exists
-        for schema, channel, message in tqdm(reader.iter_messages(), disable=not settings.progress):
+        for schema, channel, message in tqdm(
+            reader.iter_messages(
+                # Keep original order
+                log_time_order=False,
+            ),
+            disable=not settings.progress,
+        ):
             if schema is None:
                 continue
 
