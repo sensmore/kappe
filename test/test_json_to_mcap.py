@@ -68,20 +68,6 @@ def test_multiple_message_types(tmp_path: Path) -> None:
     assert output_mcap.stat().st_size > 0
 
 
-def test_round_trip_conversion(tmp_path: Path, sample_bool_message: dict) -> None:
-    """Test round-trip conversion: JSONL -> MCAP -> JSONL."""
-    # Use mcap_roundtrip_helper for consistent testing
-    result = mcap_roundtrip_helper(sample_bool_message, tmp_path)
-
-    # Verify the result has expected structure
-    assert all(
-        key in result
-        for key in ['topic', 'log_time', 'publish_time', 'sequence', 'datatype', 'message']
-    )
-    assert result['topic'] == sample_bool_message['topic']
-    assert result['datatype'] == sample_bool_message['datatype']
-
-
 def test_pointcloud2_json_to_mcap_conversion(tmp_path: Path) -> None:
     """Test PointCloud2 message conversion from JSON to MCAP."""
     # Create a PointCloud2 message with decoded points

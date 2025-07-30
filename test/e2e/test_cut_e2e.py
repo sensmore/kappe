@@ -59,6 +59,7 @@ def test_cut_e2e(case_yaml: Path, malformed_options: dict, tmp_path: Path) -> No
     for expected_file, actual_mcap in zip(expected_files, actual_files, strict=True):
         # Find corresponding actual file
         expected_name = expected_file.stem
+        assert expected_name == actual_mcap.stem
 
         assert actual_mcap is not None, f'Could not find actual file for {expected_name}'
 

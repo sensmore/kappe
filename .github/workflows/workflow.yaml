@@ -57,7 +57,7 @@ jobs:
         run: |
           echo "## Coverage Report for Python ${{ matrix.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          uv run -p ${{ matrix.version }} coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+          uv run --group test -p ${{ matrix.version }} coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Coverage Details" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

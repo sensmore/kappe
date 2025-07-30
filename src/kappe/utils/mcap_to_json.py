@@ -48,25 +48,10 @@ def _convert_pointcloud2_to_json(obj: Any) -> dict:
         and hasattr(obj, 'height')
     ):
         try:
-            # Extract point data using pointcloud2 library
-            points = list(read_points(obj))
-            # Convert numpy structured arrays to JSON-serializable dicts
-            json_points = []
-            for point in points:
-                if hasattr(point, 'dtype') and hasattr(point, 'item'):
-                    # Handle numpy void/structured array
-                    point_dict = {}
-                    for name in point.dtype.names or []:
-                        value = point[name]
-                        # Convert numpy types to Python types for JSON serialization
-                        if hasattr(value, 'item'):
-                            point_dict[name] = value.item()
-                        else:
-                            point_dict[name] = value
-                    json_points.append(point_dict)
-                else:
-                    # Regular dict or other serializable type
-                    json_points.append(point)
+            json_points = [
+                {name: point[name].item() for name in point.dtype.names}
+                for point in read_points(obj)
+            ]
 
             result['points'] = json_points
             del result['data']  # Remove raw data field if present
@@ -132,6 +117,10 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description='Convert MCAP file to JSON format.')
     parser.add_argument('file', type=Path, help='Path to the MCAP file.')
+    parser.add_argument(
+        '-o', '--output', type=Path, default='-', help='Path to the output JSONL file.'
+    )
+
     parser.add_argument('-t', '--topics', nargs='*', help='List of topics to filter messages by.')
     parser.add_argument(
         '-l',
@@ -143,7 +132,18 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    mcap_to_json(args.file, sys.stdout, args.topics, args.limit)
+    io = None
+    try:
+        io = sys.stdout if args.output == '-' else Path(args.output).open('w')  # noqa: SIM115
+        mcap_to_json(
+            file_path=args.file,
+            out_buffer=io,
+            topics=args.topics,
+            limit=args.limit,
+        )
+    finally:
+        if io and io is not sys.stdout:
+            io.close()
 
 
 if __name__ == '__main__':

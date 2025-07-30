@@ -102,6 +102,7 @@ class Settings(BaseModel, frozen=True):
     :ivar progress: Show progress bar.
     :ivar save_metadata: If true save the config as attachment in the new created mcap.
     :ivar frame_id_mapping: Mapping of topic names to new frame_id values.
+    :ivar plugin_folder: Path to the folder containing plugins.
     :ivar ros_distro: ROS2 distribution to use for message definitions.
     """
 
