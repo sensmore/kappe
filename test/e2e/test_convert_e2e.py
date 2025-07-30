@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from kappe.utils.mcap_to_json import mcap_to_json
-from test.e2e.conftest import e2e_test_helper
+
+from .conftest import e2e_test_helper
 
 # Malformation types for testing robustness
 MALFORMATION_TYPES = [

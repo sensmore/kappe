@@ -44,7 +44,7 @@ json_to_mcap = "kappe.utils.json_to_mcap:main"
 plugin_image = ["pillow>=8.0.0"]
 
 [dependency-groups]
-dev = ["pytest-cov>=6.2.1", "pytest>=8.4.1"]
+test = ["pytest-cov>=6.2.1", "pytest>=8.4.1"]
 
 [build-system]
 requires = ["hatchling"]
@@ -83,7 +83,7 @@ ignore = [
     'COM812', # missing-trailing-comma
     'ISC001', # single-line-implicit-string-concatenation
 
-    'UP038', # Depreacted rule
+    'UP038', # Deprecated rule
 ]
 
 [tool.ruff.lint.per-file-ignores]

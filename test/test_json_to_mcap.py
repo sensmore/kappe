@@ -1,15 +1,16 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
-from .conftest import create_test_data_message
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 from kappe.utils.json_to_mcap import json_to_mcap
+
+from .conftest import (
+    create_test_data_message,
+    create_test_jsonl,
+    mcap_roundtrip_helper,
+    pointcloud2_message_factory,
+)
 
 
 def test_basic_conversion(tmp_path: Path, sample_bool_message: dict) -> None:
@@ -50,7 +51,7 @@ def test_invalid_message_definition(tmp_path: Path):
         json_to_mcap(output_mcap, test_jsonl)
 
 
-def test_multiple_message_types(tmp_path: Path, create_test_jsonl: 'Callable') -> None:
+def test_multiple_message_types(tmp_path: Path) -> None:
     """Test conversion with multiple message types."""
     test_jsonl = tmp_path / 'test.jsonl'
     messages = [
@@ -67,9 +68,7 @@ def test_multiple_message_types(tmp_path: Path, create_test_jsonl: 'Callable') -
     assert output_mcap.stat().st_size > 0
 
 
-def test_round_trip_conversion(
-    tmp_path: Path, sample_bool_message: dict, mcap_roundtrip_helper: 'Callable'
-) -> None:
+def test_round_trip_conversion(tmp_path: Path, sample_bool_message: dict) -> None:
     """Test round-trip conversion: JSONL -> MCAP -> JSONL."""
     # Use mcap_roundtrip_helper for consistent testing
     result = mcap_roundtrip_helper(sample_bool_message, tmp_path)
@@ -83,9 +82,7 @@ def test_round_trip_conversion(
     assert result['datatype'] == sample_bool_message['datatype']
 
 
-def test_pointcloud2_json_to_mcap_conversion(
-    tmp_path: Path, pointcloud2_message_factory: 'Callable'
-) -> None:
+def test_pointcloud2_json_to_mcap_conversion(tmp_path: Path) -> None:
     """Test PointCloud2 message conversion from JSON to MCAP."""
     # Create a PointCloud2 message with decoded points
     test_jsonl = tmp_path / 'pointcloud2_with_points.jsonl'
@@ -106,9 +103,7 @@ def test_pointcloud2_json_to_mcap_conversion(
     assert output_mcap.stat().st_size > 0
 
 
-def test_pointcloud2_json_to_mcap_without_points(
-    tmp_path: Path, pointcloud2_message_factory: 'Callable'
-) -> None:
+def test_pointcloud2_json_to_mcap_without_points(tmp_path: Path) -> None:
     """Test PointCloud2 message conversion without decoded points."""
     # Create a PointCloud2 message without decoded points
     test_jsonl = tmp_path / 'pointcloud2_no_points.jsonl'
@@ -116,7 +111,7 @@ def test_pointcloud2_json_to_mcap_without_points(
         topic='/lidar_raw', width=1, include_points=False
     )
     # Override data field for raw data
-    pointcloud2_message['message']['data'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    pointcloud2_message['message']['data'] = list(range(1, 13))
 
     test_jsonl.write_text(json.dumps(pointcloud2_message))
 
@@ -129,9 +124,7 @@ def test_pointcloud2_json_to_mcap_without_points(
     assert output_mcap.stat().st_size > 0
 
 
-def test_pointcloud2_round_trip_with_points(
-    tmp_path: Path, pointcloud2_message_factory: 'Callable', mcap_roundtrip_helper: 'Callable'
-) -> None:
+def test_pointcloud2_round_trip_with_points(tmp_path: Path) -> None:
     """Test round-trip conversion for PointCloud2 with decoded points."""
     # Create a PointCloud2 message with decoded points
     original_message = pointcloud2_message_factory(
@@ -155,6 +148,8 @@ def test_pointcloud2_round_trip_with_points(
     assert message['header']['frame_id'] == 'lidar_frame'
     assert len(message['fields']) == 3
     assert message['fields'][0]['name'] == 'x'
+    assert message['fields'][1]['name'] == 'y'
+    assert message['fields'][2]['name'] == 'z'
 
     # Check that the points are properly decoded
     assert len(message['points']) == 1
@@ -163,9 +158,7 @@ def test_pointcloud2_round_trip_with_points(
     assert message['points'][0]['z'] == 3.5
 
 
-def test_pointcloud2_conversion_error_handling(
-    tmp_path: Path, pointcloud2_message_factory: 'Callable'
-) -> None:
+def test_pointcloud2_conversion_error_handling(tmp_path: Path) -> None:
     """Test error handling in PointCloud2 conversion."""
     # Create a malformed PointCloud2 message that should trigger error handling
     test_jsonl = tmp_path / 'pointcloud2_malformed.jsonl'

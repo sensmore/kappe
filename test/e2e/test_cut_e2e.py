@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 
 from kappe.utils.mcap_to_json import mcap_to_json
-from test.e2e.conftest import e2e_test_helper
+
+from .conftest import e2e_test_helper
 
 # Malformation types for testing robustness
 MALFORMATION_TYPES = [
@@ -48,22 +49,16 @@ def test_cut_e2e(case_yaml: Path, malformed_options: dict, tmp_path: Path) -> No
         malformed_options=malformed_options,
     )
 
-    expected_files = list(expected_dir.glob('*.jsonl'))
-    actual_files = list(tmp_path.glob('*.mcap'))
+    expected_files = sorted(expected_dir.glob('*.jsonl'))
+    actual_files = sorted(tmp_path.glob('*.mcap'))
 
     assert len(actual_files) == len(expected_files), (
         f'Expected {len(expected_files)} files, got {len(actual_files)}'
     )
 
-    for expected_file in expected_files:
+    for expected_file, actual_mcap in zip(expected_files, actual_files, strict=True):
         # Find corresponding actual file
         expected_name = expected_file.stem
-        actual_mcap = None
-
-        for actual_file in actual_files:
-            if actual_file.stem == expected_name:
-                actual_mcap = actual_file
-                break
 
         assert actual_mcap is not None, f'Could not find actual file for {expected_name}'
 

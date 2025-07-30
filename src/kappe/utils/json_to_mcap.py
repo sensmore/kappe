@@ -84,11 +84,11 @@ def _convert_json_to_pointcloud2(message_data: dict) -> dict:
                 'is_bigendian': pointcloud_msg.is_bigendian,
                 'point_step': pointcloud_msg.point_step,
                 'row_step': pointcloud_msg.row_step,
-                'data': list(pointcloud_msg.data),
+                'data': bytes(pointcloud_msg.data),
                 'is_dense': pointcloud_msg.is_dense,
             }
         except (KeyError, ValueError, TypeError) as e:
-            raise ValueError(f'Error converting PointCloud2 message data: {e}') from e
+            raise ValueError(f'Error converting PointCloud2 message: {e}') from e
 
     return message_data
 

@@ -16,6 +16,7 @@ class ROS2Distro(str, Enum):
     HUMBLE = 'humble'
     IRON = 'iron'
     JAZZY = 'jazzy'
+    KILTED = 'kilted'
     ROLLING = 'rolling'
 
 

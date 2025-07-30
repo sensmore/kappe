@@ -1,17 +1,18 @@
 import json
 from io import StringIO
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
-from .conftest import create_test_data_message
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 from kappe.utils.json_to_mcap import json_to_mcap
 from kappe.utils.mcap_to_json import mcap_to_json
+
+from .conftest import (
+    create_test_data_message,
+    create_test_jsonl,
+    mcap_roundtrip_helper,
+    pointcloud2_message_factory,
+)
 
 
 def test_file_not_found():
@@ -23,9 +24,7 @@ def test_file_not_found():
         mcap_to_json(non_existent_file, output_buffer)
 
 
-def test_basic_conversion_with_valid_mcap(
-    tmp_path: Path, sample_bool_message: dict, mcap_roundtrip_helper: 'Callable'
-) -> None:
+def test_basic_conversion_with_valid_mcap(tmp_path: Path, sample_bool_message: dict) -> None:
     """Test basic MCAP to JSONL conversion."""
     # Use mcap_roundtrip_helper for consistent testing
     result = mcap_roundtrip_helper(sample_bool_message, tmp_path)
@@ -39,7 +38,7 @@ def test_basic_conversion_with_valid_mcap(
     assert 'message' in result
 
 
-def test_topic_filtering(tmp_path: Path, create_test_jsonl: 'Callable') -> None:
+def test_topic_filtering(tmp_path: Path) -> None:
     """Test topic filtering functionality."""
     # Create test data with multiple topics
     messages = [
@@ -68,7 +67,7 @@ def test_topic_filtering(tmp_path: Path, create_test_jsonl: 'Callable') -> None:
         assert message['topic'] == '/test_topic'
 
 
-def test_message_limit(tmp_path: Path, create_test_jsonl: 'Callable') -> None:
+def test_message_limit(tmp_path: Path) -> None:
     """Test message limit functionality."""
     # Create test data with multiple messages
     messages = [
@@ -109,9 +108,7 @@ def test_empty_topics_list(tmp_path: Path, sample_bool_message: dict) -> None:
     assert len(lines) == 0
 
 
-def test_pointcloud2_conversion(
-    tmp_path: Path, pointcloud2_message_factory: 'Callable', mcap_roundtrip_helper: 'Callable'
-) -> None:
+def test_pointcloud2_conversion(tmp_path: Path) -> None:
     """Test PointCloud2 message conversion with decoded point data."""
     # Create a PointCloud2 message
     pointcloud2_message = pointcloud2_message_factory(
@@ -144,9 +141,7 @@ def test_pointcloud2_conversion(
         assert 'z' in point
 
 
-def test_pointcloud2_error_handling(
-    tmp_path: Path, pointcloud2_message_factory: 'Callable', mcap_roundtrip_helper: 'Callable'
-) -> None:
+def test_pointcloud2_error_handling(tmp_path: Path) -> None:
     """Test error handling for malformed PointCloud2 messages."""
     # Create a malformed PointCloud2 message
     malformed_message = pointcloud2_message_factory(
@@ -154,7 +149,7 @@ def test_pointcloud2_error_handling(
     )
     # Override with empty fields - should cause processing to fail gracefully
     malformed_message['message']['fields'] = []
-    malformed_message['message']['data'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    malformed_message['message']['data'] = list(range(12))
 
     # Use roundtrip helper - should not crash
     result = mcap_roundtrip_helper(malformed_message, tmp_path)
@@ -190,7 +185,7 @@ def test_empty_mcap_file(tmp_path: Path):
         mcap_to_json(empty_mcap, output_buffer)
 
 
-def test_mcap_to_json_with_zero_limit(tmp_path: Path, create_test_jsonl: 'Callable') -> None:
+def test_mcap_to_json_with_zero_limit(tmp_path: Path) -> None:
     """Test mcap_to_json with limit=0."""
     # Create test data with multiple messages
     messages = [
@@ -215,9 +210,7 @@ def test_mcap_to_json_with_zero_limit(tmp_path: Path, create_test_jsonl: 'Callab
     assert len(lines) == 3  # Should have all 3 messages
 
 
-def test_mcap_to_json_with_bytearray_limit(
-    tmp_path: Path, mcap_roundtrip_helper: 'Callable'
-) -> None:
+def test_mcap_to_json_with_bytearray_limit(tmp_path: Path) -> None:
     """Test mcap_to_json with large bytearray data."""
     # Create a message with large data field
     large_data_message = create_test_data_message(

@@ -1,7 +1,6 @@
-import warnings
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from scipy.spatial.transform import Rotation
 
 from kappe.utils.settings import SettingRotation, SettingTranslation
@@ -50,21 +49,8 @@ class SettingTF(BaseModel):
     """
 
     remove: list[str] | Literal['all'] | None = None
-    remove_tf_static: bool = Field(
-        default=False, deprecated=True, description='Deprecated: Use `remove: all` instead.'
-    )
     insert: list[SettingTFInsert] | None = None
     offset: list[SettingTFOffset] | None = None
-
-    def model_post_init(self, __context) -> None:  # noqa: ANN001, PYI063
-        if self.remove_tf_static:
-            warnings.warn(
-                'Setting `remove_tf_static` is deprecated. '
-                'Use `remove: all` instead to remove all static transforms.',
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self.remove = 'all'
 
 
 def tf_static_insert(cfg: SettingTF, stamp_ns: int) -> None | Any:

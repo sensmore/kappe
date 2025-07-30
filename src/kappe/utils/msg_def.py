@@ -50,7 +50,8 @@ def _download(url: str, buffer: IO) -> None:
 
 
 def _download_and_extract(url: str, target_dir: Path) -> None:
-    if target_dir.exists():
+    # assume already downloaded if not empty
+    if target_dir.exists() and any(target_dir.iterdir()):
         return
     target_dir.mkdir(parents=True, exist_ok=True)
     buffer = BytesIO()

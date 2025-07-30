@@ -153,7 +153,7 @@ class Converter:
             schema.encoding == SchemaEncoding.ROS1 or schema_name in self.config.msg_schema.mapping
         ):
             # if schema is not defined in the config, and it is a ROS1 schema or
-            # or scheme name is mapped, try to get the schema definition
+            # or schema name is mapped, try to get the schema definition
             # from ROS or disk
 
             new_data = get_message_definition(
@@ -163,7 +163,7 @@ class Converter:
             if new_data is not None:
                 schema_def = new_data
             else:
-                msg = f'Scheme "{schema.name}" not found, skipping.'
+                msg = f'Schema "{schema.name}" not found'
                 raise ValueError(msg)
 
         self.schema_list[schema.name] = self.writer.register_msgdef(schema_name, schema_def)

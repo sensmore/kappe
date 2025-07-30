@@ -1,13 +1,9 @@
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from .conftest import mcap_roundtrip_helper, pointcloud2_message_factory
 
 
-def test_pointcloud2_roundtrip_data_integrity(
-    tmp_path: Path, pointcloud2_message_factory: 'Callable', mcap_roundtrip_helper: 'Callable'
-) -> None:
+def test_pointcloud2_roundtrip_data_integrity(tmp_path: Path) -> None:
     """
     Tests that PointCloud2 data is correctly preserved during a full
     JSON -> MCAP -> JSON roundtrip conversion.
