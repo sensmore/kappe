@@ -44,7 +44,7 @@ json_to_mcap = "kappe.utils.json_to_mcap:main"
 plugin_image = ["pillow>=8.0.0"]
 
 [dependency-groups]
-test = ["pytest-cov>=6.2.1", "pytest>=8.4.1"]
+test = ["pytest-cov>=6.2.1", "pytest>=8.4.1", "kappe[plugin_image]"]
 
 [build-system]
 requires = ["hatchling"]
