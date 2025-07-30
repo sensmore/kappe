@@ -25,18 +25,13 @@ def test_pointcloud2_roundtrip_data_integrity(tmp_path: Path) -> None:
     input_json_content['sequence'] = 1
     input_json_content['message']['header']['stamp'] = {'sec': 1672531200, 'nanosec': 0}
 
+    # The factory includes both data and points, but for this test we only want points
+    del input_json_content['message']['data']
+
     # Use roundtrip helper
     output_data = mcap_roundtrip_helper(input_json_content, tmp_path)
 
-    # The core of the test: ensure the point data is identical
-    assert input_json_content['message']['points'] == output_data['message']['points'], (
-        'PointCloud2 points should be preserved after roundtrip'
-    )
-
-    # Also check other fields to be safe
-    assert input_json_content['topic'] == output_data['topic']
-    assert input_json_content['datatype'] == output_data['datatype']
-    assert input_json_content['message']['header'] == output_data['message']['header']
+    assert input_json_content == output_data
 
 
 def test_basic_conversion_with_valid_mcap(tmp_path: Path, sample_bool_message: dict) -> None:

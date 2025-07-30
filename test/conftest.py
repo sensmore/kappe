@@ -60,7 +60,7 @@ def pointcloud2_message_factory(
             'point_step': 12,
             'row_step': width * 12,
             'data': [0] * (width * 12),
-            'is_dense': True,
+            'is_dense': False,
         },
     }
 

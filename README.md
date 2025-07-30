@@ -473,16 +473,8 @@ plugins:
 ### ROS1 to ROS2 conversion
 
 Kappe automatic converts ROS1 messages to ROS2 messages.
-It will not reuse ROS1 definitions, all schemas will be loaded either from your ROS2 environment or from `./msgs`. If the ROS2 schema name has changed use the `msg_schema.mapping` to map the old schema to the new schema.
+It will not reuse ROS1 definitions, all schemas will be loaded either from the internet or from `./msgs`. If the ROS2 schema name has changed use the `msg_schema.mapping` to map the old schema to the new schema.
 
-The msg field will be mapped exactly, ROS1 time and duration will be converted to ROS2 time and duration (`secs -> sec` & `nsecs -> nanosec`).
-
-To download the common ROS2 schemas run:
-
-```sh
-git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.git ./msgs/common_interfaces
-git clone --depth=1 --branch=humble https://github.com/ros2/geometry2.git ./msgs/geometry2
-```
 
 ### Reproducibility
 
