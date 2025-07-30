@@ -71,7 +71,7 @@ def _get_cache_dir(distro: ROS2Distro) -> Path:
     return platformdirs.user_cache_path(
         appname='kappe_msg_def',
         ensure_exists=True,
-        version=f'1_{distro.value}',
+        version=distro.value,
     )
 
 

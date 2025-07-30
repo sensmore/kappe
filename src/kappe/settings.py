@@ -14,7 +14,7 @@ class ROS2Distro(str, Enum):
     """Valid ROS2 distributions."""
 
     HUMBLE = 'humble'
-    IRON = 'iron'
+    IRON = 'iron' # Note: EOL
     JAZZY = 'jazzy'
     KILTED = 'kilted'
     ROLLING = 'rolling'

@@ -472,8 +472,8 @@ plugins:
 
 ### ROS1 to ROS2 conversion
 
-Kappe automatic converts ROS1 messages to ROS2 messages.
-It will not reuse ROS1 definitions, all schemas will be loaded either from the internet or from `./msgs`. If the ROS2 schema name has changed use the `msg_schema.mapping` to map the old schema to the new schema.
+Kappe automatically converts ROS1 messages to ROS2 messages.
+For ROS2 message definitions, Kappe will automatically download them from GitHub based on the specified ROS2 distribution (`ros_distro`). If needed, you can still provide custom message definitions in `./msgs` folder. If the ROS2 schema name has changed use the `msg_schema.mapping` to map the old schema to the new schema.
 
 
 ### Reproducibility
