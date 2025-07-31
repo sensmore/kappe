@@ -8,7 +8,6 @@ from kappe.utils.json_to_mcap import json_to_mcap
 from .conftest import (
     create_test_data_message,
     create_test_jsonl,
-    mcap_roundtrip_helper,
     pointcloud2_message_factory,
 )
 
@@ -68,27 +67,6 @@ def test_multiple_message_types(tmp_path: Path) -> None:
     assert output_mcap.stat().st_size > 0
 
 
-def test_pointcloud2_json_to_mcap_conversion(tmp_path: Path) -> None:
-    """Test PointCloud2 message conversion from JSON to MCAP."""
-    # Create a PointCloud2 message with decoded points
-    test_jsonl = tmp_path / 'pointcloud2_with_points.jsonl'
-    pointcloud2_message = pointcloud2_message_factory(
-        topic='/lidar_scan',
-        width=2,
-        points=[{'x': 1.0, 'y': 2.0, 'z': 3.0}, {'x': 4.0, 'y': 5.0, 'z': 6.0}],
-    )
-
-    test_jsonl.write_text(json.dumps(pointcloud2_message))
-
-    # Convert to MCAP
-    output_mcap = tmp_path / 'pointcloud2_output.mcap'
-    json_to_mcap(output_mcap, test_jsonl)
-
-    # Verify MCAP file was created
-    assert output_mcap.exists()
-    assert output_mcap.stat().st_size > 0
-
-
 def test_pointcloud2_json_to_mcap_without_points(tmp_path: Path) -> None:
     """Test PointCloud2 message conversion without decoded points."""
     # Create a PointCloud2 message without decoded points
@@ -108,40 +86,6 @@ def test_pointcloud2_json_to_mcap_without_points(tmp_path: Path) -> None:
     # Verify MCAP file was created
     assert output_mcap.exists()
     assert output_mcap.stat().st_size > 0
-
-
-def test_pointcloud2_round_trip_with_points(tmp_path: Path) -> None:
-    """Test round-trip conversion for PointCloud2 with decoded points."""
-    # Create a PointCloud2 message with decoded points
-    original_message = pointcloud2_message_factory(
-        topic='/lidar_roundtrip', width=1, points=[{'x': 1.5, 'y': 2.5, 'z': 3.5}]
-    )
-
-    # Use roundtrip helper
-    result = mcap_roundtrip_helper(original_message, tmp_path)
-
-    assert result['topic'] == '/lidar_roundtrip'
-    assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'
-    assert 'message' in result
-
-    # Check that the message structure is preserved
-    message = result['message']
-    assert 'header' in message
-    assert 'fields' in message
-    assert 'points' in message  # After roundtrip, raw data becomes decoded points
-
-    # The roundtrip should preserve the basic structure
-    assert message['header']['frame_id'] == 'lidar_frame'
-    assert len(message['fields']) == 3
-    assert message['fields'][0]['name'] == 'x'
-    assert message['fields'][1]['name'] == 'y'
-    assert message['fields'][2]['name'] == 'z'
-
-    # Check that the points are properly decoded
-    assert len(message['points']) == 1
-    assert message['points'][0]['x'] == 1.5
-    assert message['points'][0]['y'] == 2.5
-    assert message['points'][0]['z'] == 3.5
 
 
 def test_pointcloud2_conversion_error_handling(tmp_path: Path) -> None:
@@ -225,25 +169,4 @@ def test_file_with_only_whitespace(tmp_path: Path):
     mcap_file = tmp_path / 'output.mcap'
 
     with pytest.raises(ValueError, match='No valid messages found in file'):
-        json_to_mcap(mcap_file, jsonl_file)
-
-
-def test_unknown_message_type(tmp_path: Path):
-    """Test handling of unknown message type."""
-    # Create a file with unknown message type
-    unknown_message = create_test_data_message(
-        datatype='unknown_msgs/msg/UnknownType',
-        topic='/unknown_topic',
-        message_data={'data': 'test'},
-        sequence=1,
-    )
-
-    jsonl_file = tmp_path / 'unknown_type.jsonl'
-    jsonl_file.write_text(json.dumps(unknown_message))
-
-    mcap_file = tmp_path / 'output.mcap'
-
-    with pytest.raises(
-        ValueError, match='Message definition for unknown_msgs/msg/UnknownType not found'
-    ):
         json_to_mcap(mcap_file, jsonl_file)

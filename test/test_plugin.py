@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -86,6 +87,8 @@ class MyConverter(ConverterPlugin):
     plugin = plugin_class()
 
     assert plugin.output_schema == 'my_schema'
+    assert isinstance(plugin.logger, logging.Logger)
+    assert plugin.logger.name == 'MyConverter'
     assert plugin.convert({'test': 'data'}) == {'my_converted': {'test': 'data'}}
 
 

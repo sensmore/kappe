@@ -95,7 +95,8 @@ def test_empty_mcap_file(tmp_path: Path):
         mcap_to_json(empty_mcap, output_buffer)
 
 
-def test_message_limit(tmp_path: Path) -> None:
+@pytest.mark.parametrize(('limit', 'expected_count'), [(1, 1), (0, 3)])
+def test_message_limit(tmp_path: Path, limit: int, expected_count: int) -> None:
     """Test message limit functionality."""
     # Create test data with multiple messages
     messages = [
@@ -110,35 +111,12 @@ def test_message_limit(tmp_path: Path) -> None:
     temp_mcap = tmp_path / 'test.mcap'
     json_to_mcap(temp_mcap, input_jsonl)
 
-    # Limit to 1 message
     output_buffer = StringIO()
-    mcap_to_json(temp_mcap, output_buffer, limit=1)
+    mcap_to_json(temp_mcap, output_buffer, limit=limit)
 
     output_buffer.seek(0)
     lines = output_buffer.readlines()
-    assert messages[0] == json.loads(lines[0].strip())
+    assert len(lines) == expected_count
 
-
-def test_mcap_to_json_with_zero_limit(tmp_path: Path) -> None:
-    """Test mcap_to_json with limit=0."""
-    # Create test data with multiple messages
-    messages = [
-        create_test_data_message(sequence=0),
-        create_test_data_message(sequence=1),
-        create_test_data_message(sequence=2),
-    ]
-
-    input_jsonl = tmp_path / 'multi_message.jsonl'
-    create_test_jsonl(messages, input_jsonl)
-
-    temp_mcap = tmp_path / 'test.mcap'
-    json_to_mcap(temp_mcap, input_jsonl)
-
-    # Convert with limit=0 - this actually means "no limit" in the implementation
-    output_buffer = StringIO()
-    mcap_to_json(temp_mcap, output_buffer, limit=0)
-
-    # Should get all messages since limit=0 means no limit
-    output_buffer.seek(0)
-    lines = output_buffer.readlines()
-    assert len(lines) == 3  # Should have all 3 messages
+    for i in range(expected_count):
+        assert messages[i] == json.loads(lines[i].strip())

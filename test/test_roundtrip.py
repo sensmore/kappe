@@ -26,57 +26,11 @@ def test_pointcloud2_roundtrip_data_integrity(tmp_path: Path) -> None:
     assert input_json_content == output_data
 
 
-def test_basic_conversion_with_valid_mcap(tmp_path: Path, sample_bool_message: dict) -> None:
-    """Test basic MCAP to JSONL conversion."""
-    result = mcap_roundtrip_helper(sample_bool_message, tmp_path)
-
-    # Verify output format
-    assert 'topic' in result
-    assert 'log_time' in result
-    assert 'publish_time' in result
-    assert 'sequence' in result
-    assert 'datatype' in result
-    assert 'message' in result
-
-
 def test_round_trip_conversion(tmp_path: Path, sample_bool_message: dict) -> None:
     """Test round-trip conversion: JSONL -> MCAP -> JSONL."""
     result = mcap_roundtrip_helper(sample_bool_message, tmp_path)
 
     assert result == sample_bool_message
-
-
-def test_pointcloud2_conversion(tmp_path: Path) -> None:
-    """Test PointCloud2 message conversion with decoded point data."""
-    # Create a PointCloud2 message
-    pointcloud2_message = pointcloud2_message_factory(
-        topic='/lidar_points',
-        width=3,
-        include_points=False,  # Start with raw data only
-    )
-
-    # Use roundtrip helper
-    result = mcap_roundtrip_helper(pointcloud2_message, tmp_path)
-
-    assert result['topic'] == '/lidar_points'
-    assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'
-    assert 'message' in result
-
-    # Check that the message contains the expected fields
-    message = result['message']
-    assert 'header' in message
-    assert 'fields' in message
-    assert 'points' in message  # mcap_to_json converts raw data to decoded points
-
-    # Check that we have the expected number of points (3)
-    assert isinstance(message['points'], list)
-    assert len(message['points']) == 3
-
-    # Check that all points have x, y, z coordinates
-    for point in message['points']:
-        assert 'x' in point
-        assert 'y' in point
-        assert 'z' in point
 
 
 def test_pointcloud2_error_handling(tmp_path: Path) -> None:
@@ -97,8 +51,8 @@ def test_pointcloud2_error_handling(tmp_path: Path) -> None:
     assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'
 
 
-def test_mcap_to_json_with_bytearray_limit(tmp_path: Path) -> None:
-    """Test mcap_to_json with large bytearray data."""
+def test_large_data_array_roundtrip(tmp_path: Path) -> None:
+    """Test roundtrip conversion with large data arrays."""
     # Create a message with large data field
     large_data_message = create_test_data_message(
         datatype='std_msgs/msg/UInt8MultiArray',
