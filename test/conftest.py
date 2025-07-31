@@ -59,13 +59,15 @@ def pointcloud2_message_factory(
             'is_bigendian': False,
             'point_step': 12,
             'row_step': width * 12,
-            'data': [0] * (width * 12),
             'is_dense': False,
         },
     }
 
     if include_points:
         message['message']['points'] = points
+    else:
+        # If points are not included, we still need to provide a data field
+        message['message']['data'] = [0] * (width * 12)
 
     return message
 

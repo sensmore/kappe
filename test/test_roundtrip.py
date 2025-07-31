@@ -19,14 +19,6 @@ def test_pointcloud2_roundtrip_data_integrity(tmp_path: Path) -> None:
         points=[{'x': 1.0, 'y': 2.0, 'z': 3.0}, {'x': 4.0, 'y': 5.0, 'z': 6.0}],
         frame_id='map',
     )
-    # Override timestamp for this specific test
-    input_json_content['log_time'] = 1672531200000000000
-    input_json_content['publish_time'] = 1672531200000000000
-    input_json_content['sequence'] = 1
-    input_json_content['message']['header']['stamp'] = {'sec': 1672531200, 'nanosec': 0}
-
-    # The factory includes both data and points, but for this test we only want points
-    del input_json_content['message']['data']
 
     # Use roundtrip helper
     output_data = mcap_roundtrip_helper(input_json_content, tmp_path)
@@ -36,7 +28,6 @@ def test_pointcloud2_roundtrip_data_integrity(tmp_path: Path) -> None:
 
 def test_basic_conversion_with_valid_mcap(tmp_path: Path, sample_bool_message: dict) -> None:
     """Test basic MCAP to JSONL conversion."""
-    # Use mcap_roundtrip_helper for consistent testing
     result = mcap_roundtrip_helper(sample_bool_message, tmp_path)
 
     # Verify output format
@@ -50,7 +41,6 @@ def test_basic_conversion_with_valid_mcap(tmp_path: Path, sample_bool_message: d
 
 def test_round_trip_conversion(tmp_path: Path, sample_bool_message: dict) -> None:
     """Test round-trip conversion: JSONL -> MCAP -> JSONL."""
-    # Use mcap_roundtrip_helper for consistent testing
     result = mcap_roundtrip_helper(sample_bool_message, tmp_path)
 
     assert result == sample_bool_message

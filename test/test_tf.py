@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+import pytest
+
 from kappe.module.tf import SettingTF, SettingTFOffset, tf_apply_offset
 from kappe.utils.settings import SettingRotation, SettingTranslation
 from kappe.writer import WrappedDecodedMessage
@@ -293,3 +295,41 @@ def test_tf_apply_offset_no_matching_frame():
     assert mock_transform.transform.translation.x == 1.0  # Unchanged
     assert mock_transform.transform.translation.y == 2.0  # Unchanged
     assert mock_transform.transform.translation.z == 3.0  # Unchanged
+
+
+@pytest.mark.parametrize(
+    ('euler_deg', 'expected_quat'),
+    [
+        pytest.param((0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0), id='identity'),
+        pytest.param(
+            (90.0, 0.0, 0.0), (0.7071067811865476, 0.0, 0.0, 0.7071067811865475), id='roll_90'
+        ),
+        pytest.param(
+            (0.0, 90.0, 0.0), (0.0, 0.7071067811865476, 0.0, 0.7071067811865475), id='pitch_90'
+        ),
+        pytest.param(
+            (0.0, 0.0, 90.0), (0.0, 0.0, 0.7071067811865476, 0.7071067811865475), id='yaw_90'
+        ),
+        pytest.param((180.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0), id='roll_180'),
+        pytest.param((0.0, 180.0, 0.0), (0.0, 1.0, 0.0, 0.0), id='pitch_180'),
+        pytest.param((0.0, 0.0, 180.0), (0.0, 0.0, 1.0, 0.0), id='yaw_180'),
+        pytest.param(
+            (45.0, 0.0, 0.0), (0.3826834323650898, 0.0, 0.0, 0.9238795325112867), id='roll_45'
+        ),
+        pytest.param(
+            (0.0, 45.0, 0.0), (0.0, 0.3826834323650898, 0.0, 0.9238795325112867), id='pitch_45'
+        ),
+        pytest.param(
+            (0.0, 0.0, 45.0), (0.0, 0.0, 0.3826834323650898, 0.9238795325112867), id='yaw_45'
+        ),
+    ],
+)
+def test_setting_rotation_rpy_to_quaternion(
+    euler_deg: tuple[float, float, float],
+    expected_quat: tuple[float, float, float, float],
+):
+    """Test SettingRotation converts RPY (euler_deg) to quaternion correctly."""
+    rotation = SettingRotation(euler_deg=euler_deg)
+    actual = rotation.quaternion
+
+    assert actual == pytest.approx(expected_quat, abs=1e-10)
