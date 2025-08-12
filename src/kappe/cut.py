@@ -125,10 +125,9 @@ def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]
     assert statistics is not None
 
     channels = list(filter(lambda x: x.topic == '/tf_static', summary.channels.values()))
-    assert len(channels) > 0
-    tf_static_channel = channels[0]
-    if tf_static_channel is None:
+    if not channels:
         return None
+    tf_static_channel = channels[0]
 
     tf_static_amount = statistics.channel_message_counts.get(tf_static_channel.id)
     if tf_static_amount is None:
