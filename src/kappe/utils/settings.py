@@ -60,7 +60,7 @@ class SettingRotation(BaseModel, frozen=True):
     @model_validator(mode='after')
     def _derive_quaternion(self) -> 'SettingRotation':
         if self.euler_deg is not None:
-            quat = Rotation.from_euler('xyz', self.euler_deg, degrees=True).as_quat()
+            quat = Rotation.from_euler('XYZ', self.euler_deg, degrees=True).as_quat()
             # model is frozen - bypass immutability for derived field
             object.__setattr__(self, 'quaternion', tuple(float(v) for v in quat))
         return self

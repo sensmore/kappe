@@ -322,6 +322,16 @@ def test_tf_apply_offset_no_matching_frame():
         pytest.param(
             (0.0, 0.0, 45.0), (0.0, 0.0, 0.3826834323650898, 0.9238795325112867), id='yaw_45'
         ),
+        pytest.param(
+            (-180.0, 0.0, 93.8),
+            (
+                -0.6832737736807991,
+                0.7301622766207524,
+                4.4709544746087435e-17,
+                4.183845199397618e-17,
+            ),
+            id='real_world_1',
+        ),
     ],
 )
 def test_setting_rotation_rpy_to_quaternion(
@@ -333,3 +343,53 @@ def test_setting_rotation_rpy_to_quaternion(
     actual = rotation.quaternion
 
     assert actual == pytest.approx(expected_quat, abs=1e-10)
+
+
+@pytest.mark.parametrize(
+    ('euler_deg', 'expected_quat_intrinsic_xyz'),
+    [
+        # Multi-axis rotations that differ significantly between extrinsic (xyz) and intrinsic (XYZ)
+        # These test cases ensure we're using intrinsic rotations (XYZ) not extrinsic (xyz)
+        pytest.param(
+            (30.0, 45.0, 60.0),
+            (0.3919038373291199, 0.20056212114657512, 0.5319756951821668, 0.7233174113647118),
+            id='multi_axis_30_45_60',
+        ),
+        pytest.param(
+            (90.0, 45.0, 30.0),
+            (0.7010573846499778, 0.09229595564125731, 0.43045933457687935, 0.560985526796931),
+            id='multi_axis_90_45_30',
+        ),
+        pytest.param((45.0, 90.0, 45.0), (0.5, 0.5, 0.5, 0.5), id='multi_axis_45_90_45'),
+        pytest.param(
+            (120.0, 60.0, 30.0),
+            (0.7891491309924314, 0.04736717274537652, 0.5303300858899106, 0.3061862178478974),
+            id='multi_axis_120_60_30',
+        ),
+        pytest.param(
+            (15.0, 30.0, 45.0),
+            (0.21467986690178759, 0.18882373494380095, 0.39769256879400694, 0.8718364368360203),
+            id='multi_axis_15_30_45',
+        ),
+    ],
+)
+def test_setting_rotation_intrinsic_vs_extrinsic_convention(
+    euler_deg: tuple[float, float, float],
+    expected_quat_intrinsic_xyz: tuple[float, float, float, float],
+):
+    """
+    Test that SettingRotation uses intrinsic rotation convention (XYZ) not extrinsic (xyz).
+
+    This test ensures we don't accidentally switch between rotation conventions, which would
+    produce drastically different results for multi-axis rotations.
+
+    Intrinsic rotations (XYZ): Rotations applied about the rotating body frame axes
+    Extrinsic rotations (xyz): Rotations applied about the fixed reference frame axes
+
+    The test cases selected here show large angular differences (50°-180°) between
+    the two conventions, making accidental switches easy to detect.
+    """
+    rotation = SettingRotation(euler_deg=euler_deg)
+    actual = rotation.quaternion
+
+    assert actual == pytest.approx(expected_quat_intrinsic_xyz, abs=1e-10)
