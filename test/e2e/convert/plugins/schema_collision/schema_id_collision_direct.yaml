@@ -1,0 +1,14 @@
+plugins:
+  # This test creates a scenario where we have both Image inputs and outputs
+  # The issue would occur if schema IDs collide and the wrong encoder/decoder is used
+  - name: image.CompressImage
+    input_topic: /camera1/image
+    output_topic: /camera1/compressed
+    settings:
+      quality: 95
+  
+  - name: image.CompressImage
+    input_topic: /camera2/image  
+    output_topic: /camera2/compressed
+    settings:
+      quality: 50
