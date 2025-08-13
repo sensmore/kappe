@@ -61,13 +61,12 @@ class Converter:
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.f_reader = input_path.open('rb')
         self.f_writer = output_path.open('wb')
-
-        reader = make_reader(self.f_reader)
         self.writer = WrappedWriter(self.f_writer)
 
-        self.mcap_header = reader.get_header()
+        with input_path.open('rb') as f:
+            reader = make_reader(f)
+            self.mcap_header = reader.get_header()
 
         self.summary: Summary | None = None
         self.statistics: Statistics | None = None
@@ -262,7 +261,6 @@ class Converter:
             start_time: Start time in seconds. If None, start at the beginning.
             end_time: End time in seconds. If None, read until the end.
         """
-        self.f_reader.seek(0)
         if self.mcap_header.profile not in (Profile.ROS1, Profile.ROS2):
             warnings.warn(
                 f'Unsupported profile: {self.mcap_header.profile}, trying to read as ROS2',
@@ -272,19 +270,22 @@ class Converter:
 
         decoder_cache = {}
 
-        try:
-            for schema, channel, message in read_message(
-                self.f_reader,
-                topics=topics,
-                start_time=int(start_time * 1e9) if start_time else None,
-                end_time=int(end_time * 1e9) if end_time else None,
-            ):
-                yield WrappedDecodedMessage(schema, channel, message, decoder_cache=decoder_cache)
-        except Exception as e:
-            if self.summary is None:
-                logger.info('Unindex mcap file, stopped at first error: %s', e)
-            else:
-                raise
+        with self.input_path.open('rb') as f:
+            try:
+                for schema, channel, message in read_message(
+                    f,
+                    topics=topics,
+                    start_time=int(start_time * 1e9) if start_time else None,
+                    end_time=int(end_time * 1e9) if end_time else None,
+                ):
+                    yield WrappedDecodedMessage(
+                        schema, channel, message, decoder_cache=decoder_cache
+                    )
+            except Exception as e:
+                if self.summary is None:
+                    logger.info('Unindex mcap file, stopped at first error: %s', e)
+                else:
+                    raise
 
     def process_message(self, msg: WrappedDecodedMessage) -> None:  # noqa: PLR0912
         schema = msg.schema
@@ -382,47 +383,22 @@ class Converter:
         )
 
     def collect_tf_static(self, start_time_sec: float) -> None:
-        if self.summary is None:
-            raise ValueError('Cannot collect tf_static without summary')
-        if self.statistics is None:
-            raise ValueError('Cannot collect tf_static without summary')
-
         start_time_ns = int(start_time_sec * 1e9)
-        start_time_part_sec = int(start_time_sec)
-        start_time_part_ns = int((start_time_sec - start_time_part_sec) * 1e9)
 
-        tf_static_channel = filter(
-            lambda x: x.topic == '/tf_static', self.summary.channels.values()
-        )
-
-        tf_static_channel = list(tf_static_channel)
-        if len(tf_static_channel) != 1:
-            raise ValueError(f'Found {len(tf_static_channel)} tf_static channels')
-
-        tf_static_channel = tf_static_channel[0]
-        tf_static_amount = self.statistics.channel_message_counts.get(tf_static_channel.id)
-        if tf_static_amount is None:
-            logger.info('Found NO tf_static messages')
-            return
-        logger.info('Found %d tf_static messages', tf_static_amount)
-        # read all tf_static messages
-        tf_static_iter = self.read_ros_messaged(topics=['/tf_static'])
-
-        if tf_static_iter is None:
-            raise ValueError('tf_static_iter is None')
-
-        for count, msg in enumerate(tf_static_iter, 1):
+        # Read all tf_static messages
+        for msg in self.read_ros_messaged(topics=['/tf_static']):
             if msg.schema is None:
                 continue
             # patch header stamp
             ros_msg = msg.decoded_message
             for transform in ros_msg.transforms:
-                # foxglove does not tf msg with the exact same timestamp
-                start_time_part_ns += 1
+                # foxglove does not like tf msg with the exact same timestamp
                 start_time_ns += 1
 
-                transform.header.stamp.sec = start_time_part_sec
-                transform.header.stamp.nanosec = start_time_part_ns
+                sec, nsec = divmod(start_time_ns, 1_000_000_000)
+
+                transform.header.stamp.sec = sec
+                transform.header.stamp.nanosec = nsec
 
             self.writer.write_message(
                 topic=msg.channel.topic,
@@ -433,24 +409,22 @@ class Converter:
                 sequence=msg.message.sequence,
             )
 
-            # performance hack
-            if count == tf_static_amount:
-                break
-
     def _calculate_start_end(
         self,
         start_time_ns: float,
         end_time_ns: float | None,
-    ) -> tuple[float, float | None]:
-        start_sec = start_time_ns / 1e9
-        end_sec: float | None = (end_time_ns + 1) / 1e9 if end_time_ns is not None else None
+    ) -> tuple[float | None, float | None]:
+        start_time_sec = start_time_ns / 1e9
+        start_sec: float | None = None
+        end_sec: float | None = None
 
         if (cfg_start := self.config.time_start) is not None:
-            start_sec = max(start_sec, cfg_start)
+            start_sec = max(start_time_sec, cfg_start)
 
         if (cfg_end := self.config.time_end) is not None:
+            end_sec: float | None = (end_time_ns + 1) / 1e9 if end_time_ns is not None else None
             # Treat small numbers as "duration"
-            cfg_end = start_sec + cfg_end if cfg_end < 100_000_000 else cfg_end
+            cfg_end = start_time_sec + cfg_end if cfg_end < 100_000_000 else cfg_end
             end_sec = min(filter(None, (end_sec, cfg_end)))
 
         return start_sec, end_sec
@@ -466,8 +440,11 @@ class Converter:
             if end_time_sec:
                 duration_sec = end_time_sec - start_time_sec
 
-            if self.config.keep_all_static_tf:
-                self.collect_tf_static(start_time_sec)
+        # Handle keep_all_static_tf even for malformed MCAPs
+        if self.config.keep_all_static_tf:
+            # Use calculated start_time_sec if available, otherwise use config or default
+            tf_start_time = start_time_sec or self.config.time_start or 1.0
+            self.collect_tf_static(tf_start_time)
 
         filtered_channels = self.get_selected_channels()
         msg_iter = self.read_ros_messaged(
@@ -502,11 +479,11 @@ class Converter:
                 if start_time_sec is None:
                     start_time_sec, end_time_sec = self._calculate_start_end(log_time, None)
 
-                if start_time_sec * 1e9 > log_time:
+                if start_time_sec and start_time_sec * 1e9 > log_time:
                     continue
                 if end_time_sec and end_time_sec * 1e9 < log_time:
                     break
-                if duration_sec is not None:
+                if start_time_sec and duration_sec is not None:
                     pbar.update((log_time / 1e9 - start_time_sec) - pbar.n)
                 else:
                     pbar.update(1)
@@ -537,5 +514,4 @@ class Converter:
 
         self.writer.finish()
 
-        self.f_reader.close()
         self.f_writer.close()

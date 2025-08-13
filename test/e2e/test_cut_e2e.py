@@ -11,7 +11,8 @@ from .conftest import e2e_test_helper
 MALFORMATION_TYPES = [
     pytest.param({}, id='normal'),
     pytest.param({'skip_index': True}, id='missing_index'),
-    # pytest.param({'skip_footer': True}, id='missing_footer'), # noqa: ERA001 TODO
+    # TODO: currently not supported
+    # pytest.param({'skip_footer': True}, id='missing_footer'), # noqa: ERA001
 ]
 
 
