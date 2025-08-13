@@ -9,6 +9,9 @@ from mcap.records import Channel, Message, Schema
 from mcap.well_known import SchemaEncoding
 from mcap.writer import CompressionType, IndexType
 from mcap.writer import Writer as McapWriter
+
+# TODO: vendor these
+from mcap_ros1._vendor.genpy import dynamic as ros1_dynamic
 from mcap_ros2._dynamic import (
     DecoderFunction,
     EncoderFunction,
@@ -27,25 +30,53 @@ class ROS2EncodeError(McapError):
     """Raised if a ROS2 message cannot be encoded."""
 
 
-def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFunction:
-    if schema is None or schema.encoding != SchemaEncoding.ROS2:
+def _get_decoder_ros1(schema: Schema) -> DecoderFunction:
+    if schema.encoding != SchemaEncoding.ROS1:
+        raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema}"')
+
+    type_dict: dict[str, type[Any]] = ros1_dynamic.generate_dynamic(
+        schema.name, schema.data.decode()
+    )
+    generated_type = type_dict[schema.name]
+
+    def decoder(data: bytes):  # noqa: ANN202
+        ros_msg = generated_type()
+        ros_msg.deserialize(data)
+        return ros_msg
+
+    return decoder
+
+
+def _get_decoder_ros2(schema: Schema) -> DecoderFunction:
+    if schema.encoding != SchemaEncoding.ROS2:
         raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema}"')
 
+    type_dict = generate_dynamic(schema.name, schema.data.decode())
+    if schema.name not in type_dict:
+        raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
+    return type_dict[schema.name]
+
+
+def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFunction:
     cache_key = hash((schema.id, schema.name, schema.data))
     decoder = cache.get(cache_key)
-    if decoder is None:
-        type_dict = generate_dynamic(schema.name, schema.data.decode())
-        if schema.name not in type_dict:
-            raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
-        decoder = type_dict[schema.name]
-        cache[cache_key] = decoder
+    if decoder is not None:
+        return decoder
+
+    if schema.encoding == SchemaEncoding.ROS2:
+        decoder = _get_decoder_ros2(schema)
+    elif schema.encoding == SchemaEncoding.ROS1:
+        decoder = _get_decoder_ros1(schema)
+    else:
+        raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
+    cache[cache_key] = decoder
     return decoder
 
 
 def get_encoder(schema: Schema, cache: dict[int, EncoderFunction]) -> EncoderFunction:
     if schema.encoding != SchemaEncoding.ROS2:
-
         raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
+
     cache_key = hash((schema.id, schema.name, schema.data))
     encoder = cache.get(cache_key)
     if encoder is None:

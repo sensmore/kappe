@@ -1,24 +1,24 @@
 plugins:
-  # First plugin: compress images from camera1 - this will create a compressed image schema  
+  # First plugin: compress images from camera1 - this will create a compressed image schema
   - name: image.CompressImage
     input_topic: /camera1/image_raw
     output_topic: /camera1/image_compressed
     settings:
       quality: 95
-  
+
   # Second plugin: insert camera info for camera2 - this creates a CameraInfo schema
-  - name: camera_info.InsertCameraInfo  
+  - name: camera_info.InsertCameraInfo
     input_topic: /camera2/image_raw
     output_topic: /camera2/camera_info
     settings:
       camera_info:
         image_height: 2
-        image_width: 2  
+        image_width: 2
         distortion_model: "plumb_bob"
         distortion_coefficients:
           data: [0.1, 0.2, 0.3, 0.4, 0.5]
         camera_matrix:
-          data: [100.0, 0.0, 1.0, 0.0, 100.0, 1.0, 0.0, 0.0, 1.0] 
+          data: [100.0, 0.0, 1.0, 0.0, 100.0, 1.0, 0.0, 0.0, 1.0]
         rectification_matrix:
           data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
         projection_matrix:
@@ -26,16 +26,16 @@ plugins:
         binning_x: 1
         binning_y: 1
         roi:
-          x_offset: 0  
+          x_offset: 0
           y_offset: 0
           height: 0
           width: 0
           do_rectify: false
 
   # Third plugin: compress the same image from camera2 - this will reuse compressed image schema
-  # but could collide if caching only uses schema.id instead of full schema content 
+  # but could collide if caching only uses schema.id instead of full schema content
   - name: image.CompressImage
-    input_topic: /camera2/image_raw  
+    input_topic: /camera2/image_raw
     output_topic: /camera2/image_compressed
     settings:
       quality: 50

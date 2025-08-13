@@ -6,11 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from mcap.reader import NonSeekingReader, make_reader
+from mcap.reader import make_reader
 from mcap.records import Channel, Schema
 from mcap.well_known import Profile, SchemaEncoding
-from mcap_ros1.decoder import DecoderFactory as Ros1DecoderFactory
-from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
 from pydantic_yaml import to_yaml_str
 from tqdm import tqdm
 
@@ -25,6 +23,7 @@ from kappe.module.tf import (
 )
 from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
+from kappe.reader import read_message
 from kappe.settings import Settings
 from kappe.utils.msg_def import get_message_definition
 from kappe.writer import WrappedDecodedMessage, WrappedWriter
@@ -264,33 +263,21 @@ class Converter:
             end_time: End time in seconds. If None, read until the end.
         """
         self.f_reader.seek(0)
-        decoder = Ros2DecoderFactory()
-        if self.mcap_header.profile == Profile.ROS1:
-            decoder = Ros1DecoderFactory()
-        elif self.mcap_header.profile != Profile.ROS2:
+        if self.mcap_header.profile not in (Profile.ROS1, Profile.ROS2):
             warnings.warn(
                 f'Unsupported profile: {self.mcap_header.profile}, trying to read as ROS2',
                 RuntimeWarning,
                 stacklevel=1,
             )
 
-        if self.summary:
-            reader = make_reader(
-                self.f_reader,
-                decoder_factories=[decoder],
-            )
-        else:
-            reader = NonSeekingReader(self.f_reader)
-
         decoder_cache = {}
 
         try:
-            for schema, channel, message in reader.iter_messages(
+            for schema, channel, message in read_message(
+                self.f_reader,
                 topics=topics,
                 start_time=int(start_time * 1e9) if start_time else None,
                 end_time=int(end_time * 1e9) if end_time else None,
-                # Keep original order
-                log_time_order=False,
             ):
                 yield WrappedDecodedMessage(schema, channel, message, decoder_cache=decoder_cache)
         except Exception as e:

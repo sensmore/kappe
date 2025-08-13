@@ -6,9 +6,9 @@ plugins:
     output_topic: /camera1/compressed
     settings:
       quality: 95
-  
+
   - name: image.CompressImage
-    input_topic: /camera2/image  
+    input_topic: /camera2/image
     output_topic: /camera2/compressed
     settings:
       quality: 50
