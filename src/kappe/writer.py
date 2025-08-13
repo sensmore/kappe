@@ -30,27 +30,31 @@ class ROS2EncodeError(McapError):
 def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFunction:
     if schema is None or schema.encoding != SchemaEncoding.ROS2:
         raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema}"')
-    decoder = cache.get(schema.id)
+
+    cache_key = hash((schema.id, schema.name, schema.data))
+    decoder = cache.get(cache_key)
     if decoder is None:
         type_dict = generate_dynamic(schema.name, schema.data.decode())
         if schema.name not in type_dict:
             raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
         decoder = type_dict[schema.name]
-        cache[schema.id] = decoder
+        cache[cache_key] = decoder
     return decoder
 
 
 def get_encoder(schema: Schema, cache: dict[int, EncoderFunction]) -> EncoderFunction:
-    encoder = cache.get(schema.id)
+    if schema.encoding != SchemaEncoding.ROS2:
+
+        raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
+    cache_key = hash((schema.id, schema.name, schema.data))
+    encoder = cache.get(cache_key)
     if encoder is None:
-        if schema.encoding != SchemaEncoding.ROS2:
-            raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
         type_dict = serialize_dynamic(schema.name, schema.data.decode())
         # Check if schema.name is in type_dict
         if schema.name not in type_dict:
             raise ROS2EncodeError(f'schema parsing failed for "{schema.name}"')
         encoder = type_dict[schema.name]
-        cache[schema.id] = encoder
+        cache[cache_key] = encoder
 
     return encoder
 
@@ -76,6 +80,8 @@ class WrappedDecodedMessage:
         return self.decode()
 
     def encode(self, cache: dict[int, EncoderFunction]) -> bytes:
+        # NOTE: this uses the original schema, which might have an colliding schema.id with
+        # the output
         if self._decoded_message is None:
             return self.message.data
         assert self.schema is not None
