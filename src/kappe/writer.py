@@ -57,9 +57,12 @@ def _get_decoder_ros2(schema: Schema) -> DecoderFunction:
     return type_dict[schema.name]
 
 
-def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFunction:
+_decoder_cache: dict[int, DecoderFunction] = {}
+
+
+def get_decoder(schema: Schema) -> DecoderFunction:
     cache_key = hash((schema.id, schema.name, schema.data))
-    decoder = cache.get(cache_key)
+    decoder = _decoder_cache.get(cache_key)
     if decoder is not None:
         return decoder
 
@@ -69,23 +72,26 @@ def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFun
         decoder = _get_decoder_ros1(schema)
     else:
         raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
-    cache[cache_key] = decoder
+    _decoder_cache[cache_key] = decoder
     return decoder
 
 
-def get_encoder(schema: Schema, cache: dict[int, EncoderFunction]) -> EncoderFunction:
+_encoder_cache: dict[int, EncoderFunction] = {}
+
+
+def get_encoder(schema: Schema) -> EncoderFunction:
     if schema.encoding != SchemaEncoding.ROS2:
         raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
 
     cache_key = hash((schema.id, schema.name, schema.data))
-    encoder = cache.get(cache_key)
+    encoder = _encoder_cache.get(cache_key)
     if encoder is None:
         type_dict = serialize_dynamic(schema.name, schema.data.decode())
         # Check if schema.name is in type_dict
         if schema.name not in type_dict:
             raise ROS2EncodeError(f'schema parsing failed for "{schema.name}"')
         encoder = type_dict[schema.name]
-        cache[cache_key] = encoder
+        _encoder_cache[cache_key] = encoder
 
     return encoder
 
@@ -96,13 +102,12 @@ class WrappedDecodedMessage:
     channel: Channel
     message: Message
 
-    decoder_cache: dict[int, DecoderFunction] = field(default_factory=dict)
     _decoded_message: Any | None = None
 
     def decode(self) -> Any:
         assert self.schema is not None
         if self._decoded_message is None:
-            decoder = get_decoder(self.schema, self.decoder_cache)
+            decoder = get_decoder(self.schema)
             self._decoded_message = decoder(self.message.data)
         return self._decoded_message
 
@@ -110,13 +115,13 @@ class WrappedDecodedMessage:
     def decoded_message(self) -> Any:
         return self.decode()
 
-    def encode(self, cache: dict[int, EncoderFunction]) -> bytes:
+    def encode(self) -> bytes:
         # NOTE: this uses the original schema, which might have an colliding schema.id with
         # the output
         if self._decoded_message is None:
             return self.message.data
         assert self.schema is not None
-        encoder = get_encoder(self.schema, cache)
+        encoder = get_encoder(self.schema)
         return encoder(self._decoded_message)
 
 
@@ -186,9 +191,9 @@ class WrappedWriter:
         """
 
         if isinstance(message, WrappedDecodedMessage):
-            data = message.encode(self._encoders_cache)
+            data = message.encode()
         else:
-            encoder = get_encoder(schema, self._encoders_cache)
+            encoder = get_encoder(schema)
             data = encoder(message)
 
         if topic not in self._channel_ids:

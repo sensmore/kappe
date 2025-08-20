@@ -266,8 +266,6 @@ class Converter:
                 stacklevel=1,
             )
 
-        decoder_cache = {}
-
         with self.input_path.open('rb') as f:
             try:
                 for schema, channel, message in read_message(
@@ -276,9 +274,7 @@ class Converter:
                     start_time=int(start_time * 1e9) if start_time else None,
                     end_time=int(end_time * 1e9) if end_time else None,
                 ):
-                    yield WrappedDecodedMessage(
-                        schema, channel, message, decoder_cache=decoder_cache
-                    )
+                    yield WrappedDecodedMessage(schema, channel, message)
             except Exception as e:
                 if self.summary is None:
                     logger.info('Unindex mcap file, stopped at first error: %s', e)
