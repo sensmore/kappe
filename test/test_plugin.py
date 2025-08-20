@@ -171,10 +171,63 @@ def test_load_plugin_from_builtin_plugins():
         plugin_file = mock_builtin_path.__truediv__.return_value
         plugin_file.exists.return_value = True
 
-        with patch('kappe.plugin.SourceFileLoader') as mock_loader:
+        with (
+            patch('kappe.plugin.SourceFileLoader') as mock_loader,
+            patch('kappe.plugin.spec_from_loader') as mock_spec_from_loader,
+            patch('kappe.plugin.module_from_spec') as mock_module_from_spec,
+        ):
             mock_module = MagicMock()
             mock_module.Converter = OneConverterPlugin
-            mock_loader.return_value.load_module.return_value = mock_module
+            mock_spec = MagicMock()
+            mock_spec.loader = mock_loader.return_value
+            mock_spec_from_loader.return_value = mock_spec
+            mock_module_from_spec.return_value = mock_module
 
             plugin_class = load_plugin(None, 'test_plugin')
             assert plugin_class == OneConverterPlugin
+
+
+def test_load_plugin_spec_creation_failure(tmp_path: Path):
+    """Test handling when spec_from_loader returns None."""
+    plugin_file = tmp_path / 'spec_fail_plugin.py'
+    plugin_file.write_text("""
+from kappe.plugin import ConverterPlugin
+
+class Converter(ConverterPlugin):
+    @property
+    def output_schema(self):
+        return 'test_schema'
+
+    def convert(self, ros_msg):
+        return ros_msg
+""")
+
+    with patch('kappe.plugin.spec_from_loader') as mock_spec_from_loader:
+        mock_spec_from_loader.return_value = None
+
+        with pytest.raises(ValueError, match='Plugin file spec_fail_plugin does not exist'):
+            load_plugin(tmp_path, 'spec_fail_plugin')
+
+
+def test_load_plugin_spec_loader_none(tmp_path: Path):
+    """Test handling when spec.loader is None."""
+    plugin_file = tmp_path / 'loader_none_plugin.py'
+    plugin_file.write_text("""
+from kappe.plugin import ConverterPlugin
+
+class Converter(ConverterPlugin):
+    @property
+    def output_schema(self):
+        return 'test_schema'
+
+    def convert(self, ros_msg):
+        return ros_msg
+""")
+
+    with patch('kappe.plugin.spec_from_loader') as mock_spec_from_loader:
+        mock_spec = MagicMock()
+        mock_spec.loader = None
+        mock_spec_from_loader.return_value = mock_spec
+
+        with pytest.raises(ValueError, match='Plugin file loader_none_plugin does not exist'):
+            load_plugin(tmp_path, 'loader_none_plugin')
