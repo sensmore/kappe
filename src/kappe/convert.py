@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from mcap.reader import make_reader
 from mcap.records import Channel, Schema
 from mcap.well_known import Profile, SchemaEncoding
 from pydantic_yaml import to_yaml_str
@@ -23,7 +22,7 @@ from kappe.module.tf import (
 )
 from kappe.module.timing import fix_ros1_time, time_offset
 from kappe.plugin import ConverterPlugin, load_plugin
-from kappe.reader import read_message
+from kappe.reader import get_header, get_summary, read_message
 from kappe.settings import Settings
 from kappe.utils.msg_def import get_message_definition
 from kappe.writer import WrappedDecodedMessage, WrappedWriter
@@ -64,20 +63,19 @@ class Converter:
         self.f_writer = output_path.open('wb')
         self.writer = WrappedWriter(self.f_writer)
 
-        with input_path.open('rb') as f:
-            reader = make_reader(f)
-            self.mcap_header = reader.get_header()
-
         self.summary: Summary | None = None
         self.statistics: Statistics | None = None
 
-        try:
-            self.summary = reader.get_summary()
-        except Exception:  # noqa: BLE001
-            logger.warning('Unindexed/Broken MCAP, trying to read, CAN BE SLOW!')
+        with input_path.open('rb') as f:
+            self.mcap_header = get_header(f)
+            self.summary = get_summary(f)
 
         if self.summary:
             self.statistics = self.summary.statistics
+            if not self.summary.chunk_indexes:
+                logger.warning('No chunk indexes found in summary.')
+        else:
+            logger.warning('Broken MCAP, trying to read, CAN BE SLOW!')
 
         self.tf_static_channel_id: int | None = None
 

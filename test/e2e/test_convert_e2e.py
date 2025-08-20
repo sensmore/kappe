@@ -27,7 +27,9 @@ def discover_cases() -> list:
 
 @pytest.mark.parametrize('case_yaml', discover_cases())
 @pytest.mark.parametrize('malformed_options', MALFORMATION_TYPES)
-def test_e2e(case_yaml: Path, malformed_options: dict, tmp_path: Path) -> None:
+def test_e2e(
+    case_yaml: Path, malformed_options: dict, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     """Full pipeline: JSONL → MCAP → kappe → MCAP → JSONL."""
     base = case_yaml.with_suffix('')  # strip ".yaml"
     input_jsonl = base.with_suffix('.input.jsonl')
@@ -51,6 +53,26 @@ def test_e2e(case_yaml: Path, malformed_options: dict, tmp_path: Path) -> None:
     )
     if error_json.exists():
         return
+
+    # Check for indexing warnings based on malformed_options
+    if malformed_options.get('skip_index'):
+        expected_warning = 'No chunk indexes found in summary.'
+        assert expected_warning in caplog.text, (
+            f'Expected "{expected_warning}" for {malformed_options}'
+        )
+    elif malformed_options.get('skip_footer'):
+        expected_warning = 'Broken MCAP, trying to read, CAN BE SLOW!'
+        assert expected_warning in caplog.text, (
+            f'Expected "{expected_warning}" for {malformed_options}'
+        )
+    else:
+        # Normal MCAP should not have any warnings about indexing/broken MCAP
+        broken_warnings = [
+            'No chunk indexes found in summary.',
+            'Broken MCAP, trying to read, CAN BE SLOW!',
+        ]
+        for warning in broken_warnings:
+            assert warning not in caplog.text, f'Unexpected warning "{warning}" for normal MCAP'
 
     output_buffer = StringIO()
     mcap_to_json(tmp_path / 'input.mcap', output_buffer)

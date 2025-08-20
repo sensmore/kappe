@@ -3,7 +3,7 @@ from collections.abc import Generator, Iterable, Iterator
 from typing import IO
 
 from mcap.data_stream import ReadDataStream
-from mcap.exceptions import McapError
+from mcap.exceptions import EndOfFile, McapError
 from mcap.reader import FOOTER_SIZE
 from mcap.records import (
     AttachmentIndex,
@@ -11,6 +11,7 @@ from mcap.records import (
     Chunk,
     ChunkIndex,
     Footer,
+    Header,
     McapRecord,
     Message,
     MetadataIndex,
@@ -45,8 +46,10 @@ def _read_summary_from_stream_reader(stream_reader: StreamReader) -> Summary | N
     return summary
 
 
-def _get_summary(stream: IO[bytes]) -> Summary | None:
+def get_summary(stream: IO[bytes]) -> Summary | None:
     """Get the start and end indexes of each chunk in the stream."""
+    if not stream.seekable():
+        return None
     try:
         stream.seek(-(FOOTER_SIZE + MAGIC_SIZE), io.SEEK_END)
         footer = next(
@@ -57,15 +60,31 @@ def _get_summary(stream: IO[bytes]) -> Summary | None:
             ).records
         )
         if not isinstance(footer, Footer):
-            raise McapError(f'expected footer at end of MCAP file, found {type(footer)}')
+            return None
         if footer.summary_start == 0:
             return None
         stream.seek(footer.summary_start, io.SEEK_SET)
         return _read_summary_from_stream_reader(
             StreamReader(stream, skip_magic=True, record_size_limit=None)
         )
-    except:  # noqa: E722, TODO handle better
+    except (OSError, StopIteration, EndOfFile):
         return None
+
+
+def get_header(stream: IO[bytes]) -> Header:
+    if stream.seekable():
+        stream.seek(0, io.SEEK_SET)
+
+    header = next(
+        StreamReader(
+            stream,
+            skip_magic=False,
+            record_size_limit=None,
+        ).records
+    )
+    if not isinstance(header, Header):
+        raise McapError(f'expected header at beginning of MCAP file, found {type(header)}')
+    return header
 
 
 def _chunks_matching_topics(
@@ -74,17 +93,17 @@ def _chunks_matching_topics(
     start_time: float | None,
     end_time: float | None,
 ) -> list[ChunkIndex]:
-    out: list[ChunkIndex] = []
-    for chunk_index in summary.chunk_indexes:
-        if start_time is not None and chunk_index.message_end_time < start_time:
-            continue
-        if end_time is not None and chunk_index.message_start_time >= end_time:
-            continue
-        for channel_id in chunk_index.message_index_offsets:
-            if topics is None or summary.channels[channel_id].topic in topics:
-                out.append(chunk_index)
-                break
-    return out
+    topics_set = set(topics) if topics is not None else None
+    return [
+        chunk_index
+        for chunk_index in summary.chunk_indexes
+        if not (start_time is not None and chunk_index.message_end_time < start_time)
+        and not (end_time is not None and chunk_index.message_start_time >= end_time)
+        and any(
+            topics_set is None or summary.channels[channel_id].topic in topics_set
+            for channel_id in chunk_index.message_index_offsets
+        )
+    ]
 
 
 def _read_inner(
@@ -107,11 +126,11 @@ def _read_inner(
             if record.channel_id not in _channels:
                 raise McapError(f'no channel record found with id {record.channel_id}')
             channel = _channels[record.channel_id]
-            if topics is not None and channel.topic not in topics:
-                continue
-            if start_time is not None and record.log_time < start_time:
-                continue
-            if end_time is not None and record.log_time >= end_time:
+            if (
+                (topics is not None and channel.topic not in topics)
+                or (start_time is not None and record.log_time < start_time)
+                or (end_time is not None and record.log_time >= end_time)
+            ):
                 continue
             schema = None if channel.schema_id == 0 else _schemas[channel.schema_id]
             yield (schema, channel, record)
@@ -123,7 +142,7 @@ def _read_message_seeking(
     start_time: float | None = None,
     end_time: float | None = None,
 ) -> Generator[tuple[Schema | None, Channel, Message], None, None]:
-    summary = _get_summary(stream)
+    summary = get_summary(stream)
     # No summary or chunk indexes exists
     if summary is None or not summary.chunk_indexes:
         # seek to start
@@ -148,7 +167,6 @@ def _read_message_non_seeking(
     start_time: float | None = None,
     end_time: float | None = None,
 ) -> Generator[tuple[Schema | None, Channel, Message], None, None]:
-    # TODO: support seeking stream
     reader = StreamReader(stream)
 
     yield from _read_inner(reader.records, topics, start_time, end_time)
