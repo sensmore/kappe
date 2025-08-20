@@ -1,5 +1,5 @@
-{"topic": "/data", "log_time": 1676549400000000000, "publish_time": 1676549400000000000, "sequence": 1, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
-{"topic": "/marker", "log_time": 1676549450000000000, "publish_time": 1676549450000000000, "sequence": 2, "datatype": "std_msgs/msg/Bool", "message": {"data": false}}
-{"topic": "/data", "log_time": 1676549500000000000, "publish_time": 1676549500000000000, "sequence": 3, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
-{"topic": "/marker", "log_time": 1676549550000000000, "publish_time": 1676549550000000000, "sequence": 4, "datatype": "std_msgs/msg/Bool", "message": {"data": false}}
-{"topic": "/data", "log_time": 1676549600000000000, "publish_time": 1676549600000000000, "sequence": 5, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
+{"datatype":"std_msgs/msg/Bool","log_time":1676549400000000000,"message":{"data":true},"publish_time":1676549400000000000,"sequence":1,"topic":"/data"}
+{"datatype":"std_msgs/msg/Bool","log_time":1676549450000000000,"message":{"data":false},"publish_time":1676549450000000000,"sequence":2,"topic":"/marker"}
+{"datatype":"std_msgs/msg/Bool","log_time":1676549500000000000,"message":{"data":true},"publish_time":1676549500000000000,"sequence":3,"topic":"/data"}
+{"datatype":"std_msgs/msg/Bool","log_time":1676549550000000000,"message":{"data":false},"publish_time":1676549550000000000,"sequence":4,"topic":"/marker"}
+{"datatype":"std_msgs/msg/Bool","log_time":1676549600000000000,"message":{"data":true},"publish_time":1676549600000000000,"sequence":5,"topic":"/data"}

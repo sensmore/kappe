@@ -1,1 +1,1 @@
-{"topic": "/test", "log_time": 1672531200000000000, "publish_time": 1672531200000000000, "sequence": 1, "datatype": "std_msgs/Int64", "message": {"data": 42}}
+{"datatype":"std_msgs/Int64","log_time":1672531200000000000,"message":{"data":42},"publish_time":1672531200000000000,"sequence":1,"topic":"/test"}

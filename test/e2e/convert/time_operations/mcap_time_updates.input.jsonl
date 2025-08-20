@@ -1,2 +1,2 @@
-{"topic": "/test_topic", "log_time": 0, "publish_time": 0, "sequence": 0, "datatype": "sensor_msgs/msg/Joy", "message": {"header": {"stamp": {"sec": 15, "nanosec": 500000000}, "frame_id": "test_frame"}, "axes": [], "buttons": []}}
-{"topic": "/unaffected_topic", "log_time": 1000000000, "publish_time": 2000000000, "sequence": 1, "datatype": "sensor_msgs/msg/Joy", "message": {"header": {"stamp": {"sec": 25, "nanosec": 750000000}, "frame_id": "test_frame"}, "axes": [], "buttons": []}}
+{"datatype":"sensor_msgs/msg/Joy","log_time":0,"message":{"axes":[],"buttons":[],"header":{"frame_id":"test_frame","stamp":{"nanosec":500000000,"sec":15}}},"publish_time":0,"sequence":0,"topic":"/test_topic"}
+{"datatype":"sensor_msgs/msg/Joy","log_time":1000000000,"message":{"axes":[],"buttons":[],"header":{"frame_id":"test_frame","stamp":{"nanosec":750000000,"sec":25}}},"publish_time":2000000000,"sequence":1,"topic":"/unaffected_topic"}

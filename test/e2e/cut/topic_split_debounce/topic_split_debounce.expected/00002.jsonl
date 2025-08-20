@@ -1,2 +1,2 @@
-{"topic": "/marker", "log_time": 1676549462000000000, "publish_time": 1676549462000000000, "sequence": 4, "datatype": "std_msgs/msg/String", "message": {"data": "second split trigger"}}
-{"topic": "/other", "log_time": 1676549464000000000, "publish_time": 1676549464000000000, "sequence": 5, "datatype": "std_msgs/msg/String", "message": {"data": "end"}}
+{"datatype":"std_msgs/msg/String","log_time":1676549462000000000,"message":{"data":"second split trigger"},"publish_time":1676549462000000000,"sequence":4,"topic":"/marker"}
+{"datatype":"std_msgs/msg/String","log_time":1676549464000000000,"message":{"data":"end"},"publish_time":1676549464000000000,"sequence":5,"topic":"/other"}

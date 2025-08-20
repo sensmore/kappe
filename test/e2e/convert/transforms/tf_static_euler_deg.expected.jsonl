@@ -1,4 +1,4 @@
-{"topic": "/tf_static", "log_time": 0, "publish_time": 0, "sequence": 0, "datatype": "tf2_msgs/msg/TFMessage", "message": {"transforms": [{"header": {"stamp": {"sec": 0, "nanosec": 0}, "frame_id": "base_link"}, "child_frame_id": "euler_rotated_frame", "transform": {"translation": {"x": 1.0, "y": 0.0, "z": 0.5}, "rotation": {"x": 0.3919038373291199, "y": 0.20056212114657512, "z": 0.5319756951821668, "w": 0.7233174113647118}}}]}}
-{"topic": "/tf_static", "log_time": 0, "publish_time": 0, "sequence": 0, "datatype": "tf2_msgs/msg/TFMessage", "message": {"transforms": []}}
-{"topic": "/tf", "log_time": 1000000000, "publish_time": 1000000000, "sequence": 0, "datatype": "tf2_msgs/msg/TFMessage", "message": {"transforms": []}}
-{"topic": "/other_topic", "log_time": 2000000000, "publish_time": 2000000000, "sequence": 1, "datatype": "std_msgs/msg/String", "message": {"data": "unaffected message"}}
+{"datatype":"tf2_msgs/msg/TFMessage","log_time":0,"message":{"transforms":[{"child_frame_id":"euler_rotated_frame","header":{"frame_id":"base_link","stamp":{"nanosec":0,"sec":0}},"transform":{"rotation":{"w":0.7233174113647118,"x":0.3919038373291199,"y":0.20056212114657512,"z":0.5319756951821668},"translation":{"x":1.0,"y":0.0,"z":0.5}}}]},"publish_time":0,"sequence":0,"topic":"/tf_static"}
+{"datatype":"tf2_msgs/msg/TFMessage","log_time":0,"message":{"transforms":[]},"publish_time":0,"sequence":0,"topic":"/tf_static"}
+{"datatype":"tf2_msgs/msg/TFMessage","log_time":1000000000,"message":{"transforms":[]},"publish_time":1000000000,"sequence":0,"topic":"/tf"}
+{"datatype":"std_msgs/msg/String","log_time":2000000000,"message":{"data":"unaffected message"},"publish_time":2000000000,"sequence":1,"topic":"/other_topic"}

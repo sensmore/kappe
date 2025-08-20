@@ -1,5 +1,5 @@
-{"topic": "/test_topic_a", "log_time": 2000000000, "publish_time": 3000000000, "sequence": 4, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
-{"topic": "/test_topic_a", "log_time": 1000000000, "publish_time": 4000000000, "sequence": 1, "datatype": "std_msgs/msg/Bool", "message": {"data": false}}
-{"topic": "/test_topic_b", "log_time": 4000000000, "publish_time": 1000000000, "sequence": 3, "datatype": "std_msgs/msg/String", "message": {"data": "first"}}
-{"topic": "/test_topic_a", "log_time": 3000000000, "publish_time": 2000000000, "sequence": 2, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
-{"topic": "/test_topic_b", "log_time": 5000000000, "publish_time": 5000000000, "sequence": 5, "datatype": "std_msgs/msg/String", "message": {"data": "second"}}
+{"datatype":"std_msgs/msg/Bool","log_time":2000000000,"message":{"data":true},"publish_time":3000000000,"sequence":4,"topic":"/test_topic_a"}
+{"datatype":"std_msgs/msg/Bool","log_time":1000000000,"message":{"data":false},"publish_time":4000000000,"sequence":1,"topic":"/test_topic_a"}
+{"datatype":"std_msgs/msg/String","log_time":4000000000,"message":{"data":"first"},"publish_time":1000000000,"sequence":3,"topic":"/test_topic_b"}
+{"datatype":"std_msgs/msg/Bool","log_time":3000000000,"message":{"data":true},"publish_time":2000000000,"sequence":2,"topic":"/test_topic_a"}
+{"datatype":"std_msgs/msg/String","log_time":5000000000,"message":{"data":"second"},"publish_time":5000000000,"sequence":5,"topic":"/test_topic_b"}

@@ -1,3 +1,3 @@
-{"topic": "/test_topic", "log_time": 0, "publish_time": 0, "sequence": 0, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
-{"topic": "/test_topic", "log_time": 1000000000, "publish_time": 1000000000, "sequence": 1, "datatype": "std_msgs/msg/Bool", "message": {"data": false}}
-{"topic": "/test_topic", "log_time": 2000000000, "publish_time": 2000000000, "sequence": 2, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
+{"datatype":"std_msgs/msg/Bool","log_time":0,"message":{"data":true},"publish_time":0,"sequence":0,"topic":"/test_topic"}
+{"datatype":"std_msgs/msg/Bool","log_time":1000000000,"message":{"data":false},"publish_time":1000000000,"sequence":1,"topic":"/test_topic"}
+{"datatype":"std_msgs/msg/Bool","log_time":2000000000,"message":{"data":true},"publish_time":2000000000,"sequence":2,"topic":"/test_topic"}

@@ -1,4 +1,4 @@
-{"topic": "/default_topic", "log_time": 1000000000, "publish_time": 1000000000, "sequence": 1, "datatype": "std_msgs/msg/Header", "message": {"stamp": {"sec": 11, "nanosec": 100000000}, "frame_id": "test"}}
-{"topic": "/pub_time_topic", "log_time": 2000000000, "publish_time": 5000000000, "sequence": 2, "datatype": "std_msgs/msg/Header", "message": {"stamp": {"sec": 7, "nanosec": 200000000}, "frame_id": "test2"}}
-{"topic": "/mcap_update_topic", "log_time": 23300000000, "publish_time": 23300000000, "sequence": 3, "datatype": "std_msgs/msg/Header", "message": {"stamp": {"sec": 23, "nanosec": 300000000}, "frame_id": "test3"}}
-{"topic": "/unaffected_topic", "log_time": 6000000000, "publish_time": 7000000000, "sequence": 4, "datatype": "std_msgs/msg/Header", "message": {"stamp": {"sec": 31, "nanosec": 100000000}, "frame_id": "test4"}}
+{"datatype":"std_msgs/msg/Header","log_time":1000000000,"message":{"frame_id":"test","stamp":{"nanosec":100000000,"sec":11}},"publish_time":1000000000,"sequence":1,"topic":"/default_topic"}
+{"datatype":"std_msgs/msg/Header","log_time":2000000000,"message":{"frame_id":"test2","stamp":{"nanosec":200000000,"sec":7}},"publish_time":5000000000,"sequence":2,"topic":"/pub_time_topic"}
+{"datatype":"std_msgs/msg/Header","log_time":23300000000,"message":{"frame_id":"test3","stamp":{"nanosec":300000000,"sec":23}},"publish_time":23300000000,"sequence":3,"topic":"/mcap_update_topic"}
+{"datatype":"std_msgs/msg/Header","log_time":6000000000,"message":{"frame_id":"test4","stamp":{"nanosec":100000000,"sec":31}},"publish_time":7000000000,"sequence":4,"topic":"/unaffected_topic"}

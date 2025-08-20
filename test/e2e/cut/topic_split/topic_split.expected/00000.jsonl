@@ -1,1 +1,1 @@
-{"topic": "/data", "log_time": 1676549400000000000, "publish_time": 1676549400000000000, "sequence": 1, "datatype": "std_msgs/msg/Bool", "message": {"data": true}}
+{"datatype":"std_msgs/msg/Bool","log_time":1676549400000000000,"message":{"data":true},"publish_time":1676549400000000000,"sequence":1,"topic":"/data"}
