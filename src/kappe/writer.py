@@ -15,6 +15,8 @@ from mcap_ros2._dynamic import (
     generate_dynamic,
     serialize_dynamic,
 )
+from mcap_protobuf.decoder import DecoderFactory as ProtobufDecoderFactory
+from google.protobuf.message import Message as ProtobufMessage
 
 from kappe import __version__
 
@@ -27,11 +29,23 @@ class ROS2EncodeError(McapError):
     """Raised if a ROS2 message cannot be encoded."""
 
 
-def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFunction:
-    if schema is None or schema.encoding != SchemaEncoding.ROS2:
+def get_decoder(
+    schema: Schema,
+    cache: dict[int, DecoderFunction],
+    protobuf_decoder_factory: ProtobufDecoderFactory,
+) -> DecoderFunction:
+    if schema is None or schema.encoding not in [
+        SchemaEncoding.ROS2,
+        SchemaEncoding.Protobuf,
+    ]:
         raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema}"')
     decoder = cache.get(schema.id)
     if decoder is None:
+        if schema.encoding == SchemaEncoding.Protobuf:
+            decoder = protobuf_decoder_factory.decoder_for(SchemaEncoding.Protobuf, schema)
+            assert decoder is not None
+            cache[schema.id] = decoder
+            return decoder
         type_dict = generate_dynamic(schema.name, schema.data.decode())
         if schema.name not in type_dict:
             raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
@@ -43,7 +57,7 @@ def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFun
 def get_encoder(schema: Schema, cache: dict[int, EncoderFunction]) -> EncoderFunction:
     encoder = cache.get(schema.id)
     if encoder is None:
-        if schema.encoding != SchemaEncoding.ROS2:
+        if schema.encoding not in [SchemaEncoding.ROS2, SchemaEncoding.Protobuf]:
             raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
         type_dict = serialize_dynamic(schema.name, schema.data.decode())
         # Check if schema.name is in type_dict
@@ -61,13 +75,18 @@ class WrappedDecodedMessage:
     channel: Channel
     message: Message
 
+    _protobuf_decoder_factory: ProtobufDecoderFactory = field(
+        default=ProtobufDecoderFactory(), init=False
+    )
     decoder_cache: dict[int, DecoderFunction] = field(default_factory=dict)
     _decoded_message: Any | None = None
 
     def decode(self) -> Any:
         assert self.schema is not None
         if self._decoded_message is None:
-            decoder = get_decoder(self.schema, self.decoder_cache)
+            decoder = get_decoder(
+                self.schema, self.decoder_cache, self._protobuf_decoder_factory
+            )
             self._decoded_message = decoder(self.message.data)
         return self._decoded_message
 
@@ -79,6 +98,10 @@ class WrappedDecodedMessage:
         if self._decoded_message is None:
             return self.message.data
         assert self.schema is not None
+        if self.schema.encoding == SchemaEncoding.Protobuf and isinstance(
+            self._decoded_message, ProtobufMessage
+        ):
+            return self._decoded_message.SerializeToString()
         encoder = get_encoder(self.schema, cache)
         return encoder(self._decoded_message)
 
@@ -125,6 +148,18 @@ class WrappedWriter:
         schema_id = self._writer.register_schema(datatype, SchemaEncoding.ROS2, msgdef_data)
         return Schema(id=schema_id, name=datatype, encoding=SchemaEncoding.ROS2, data=msgdef_data)
 
+    def register_protobuf(self, name: str, serialized_descriptor: bytes) -> Schema:
+        """Writer a Schema record for a Protobuf message definition."""
+        schema_id = self._writer.register_schema(
+            name, SchemaEncoding.Protobuf, serialized_descriptor
+        )
+        return Schema(
+            id=schema_id,
+            name=name,
+            encoding=SchemaEncoding.Protobuf,
+            data=serialized_descriptor,
+        )
+
     def write_message(  # noqa: PLR0913
         self,
         topic: str,
@@ -148,16 +183,25 @@ class WrappedWriter:
 
         if isinstance(message, WrappedDecodedMessage):
             data = message.encode(self._encoders_cache)
+        elif schema.encoding == SchemaEncoding.Protobuf and isinstance(message, ProtobufMessage):
+            data = message.SerializeToString()
         else:
             encoder = get_encoder(schema, self._encoders_cache)
             data = encoder(message)
 
         if topic not in self._channel_ids:
-            channel_id = self._writer.register_channel(
-                topic=topic,
-                message_encoding='cdr',
-                schema_id=schema.id,
-            )
+            if schema.encoding == SchemaEncoding.Protobuf:
+                channel_id = self._writer.register_channel(
+                    topic=topic,
+                    message_encoding='protobuf',
+                    schema_id=schema.id,
+                )
+            else:
+                channel_id = self._writer.register_channel(
+                    topic=topic,
+                    message_encoding='cdr',
+                    schema_id=schema.id,
+                )
             self._channel_ids[topic] = channel_id
         channel_id = self._channel_ids[topic]
 

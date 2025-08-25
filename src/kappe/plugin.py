@@ -5,6 +5,7 @@ from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+from google.protobuf.descriptor import Descriptor
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,17 @@ class ConverterPlugin(ABC):
     @abstractmethod
     def convert(self, ros_msg: Any) -> Any:
         pass
+
+
+class ProtobufConverterPlugin(ConverterPlugin):
+    @property
+    @abstractmethod
+    def descriptor(self) -> Descriptor:
+        pass
+
+    @property
+    def output_schema(self) -> str:
+        return self.descriptor.full_name
 
 
 def module_get_plugins(module: ModuleType) -> list[str]:
