@@ -1,0 +1,10 @@
+tf_static:
+  insert:
+    - frame_id: "base_link"
+      child_frame_id: "euler_rotated_frame"
+      translation:
+        x: 1.0
+        y: 0.0
+        z: 0.5
+      rotation:
+        euler_deg: [30, 45, 60]

@@ -49,6 +49,16 @@ jobs:
 
       - run: uv run -p ${{ matrix.version }} ./src/kappe/cli.py version
 
+      - name: Run pytest with coverage
+        run: uv run --group test -p ${{ matrix.version }} pytest --cov=src/kappe --cov-report=term --cov-report=html --cov-report=xml
+
+      - name: Generate coverage summary
+        if: always()
+        run: |
+          echo "## Coverage Report for Python ${{ matrix.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          uv run --group test -p ${{ matrix.version }} coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+
   build:
     if: github.event_name == 'release' || github.event.inputs.job == 'build'
     needs:

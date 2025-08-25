@@ -1,0 +1,2 @@
+{"datatype":"std_msgs/msg/Bool","log_time":1676549550000000000,"message":{"data":false},"publish_time":1676549550000000000,"sequence":4,"topic":"/marker"}
+{"datatype":"std_msgs/msg/Bool","log_time":1676549600000000000,"message":{"data":true},"publish_time":1676549600000000000,"sequence":5,"topic":"/data"}

@@ -36,6 +36,12 @@ class CutSettings(BaseModel):
     split_on_topic: CutSplitOn | None = None
     progress: bool = True
 
+    @model_validator(mode='after')
+    def validate_splits_or_split_on_topic(self) -> 'CutSettings':
+        if self.splits is None and self.split_on_topic is None:
+            raise ValueError('splits must be set')
+        return self
+
 
 class SplitWriter:
     def __init__(self, path: str, profile: str) -> None:
@@ -119,10 +125,9 @@ def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]
     assert statistics is not None
 
     channels = list(filter(lambda x: x.topic == '/tf_static', summary.channels.values()))
-    assert len(channels) > 0
-    tf_static_channel = channels[0]
-    if tf_static_channel is None:
+    if not channels:
         return None
+    tf_static_channel = channels[0]
 
     tf_static_amount = statistics.channel_message_counts.get(tf_static_channel.id)
     if tf_static_amount is None:
@@ -139,12 +144,14 @@ def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]
     for count, (_, _, message) in enumerate(
         reader.iter_messages(
             topics=['/tf_static'],
+            # Keep original order
+            log_time_order=False,
         )
     ):
         tf_static_msgs.append(message.data)
 
         # performance hack
-        if count >= tf_static_amount:
+        if count >= tf_static_amount:  # pragma: no cover, hack
             break
 
     logger.info('Collecting static tf data done')
@@ -192,6 +199,8 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
         for schema, channel, message in reader.iter_messages(
             start_time=min_start_time,
             end_time=max_end_time,
+            # Keep original order
+            log_time_order=False,
         ):
             if schema is None:
                 continue
@@ -230,7 +239,13 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
             writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
         # TODO: check if topic exists
-        for schema, channel, message in tqdm(reader.iter_messages(), disable=not settings.progress):
+        for schema, channel, message in tqdm(
+            reader.iter_messages(
+                # Keep original order
+                log_time_order=False,
+            ),
+            disable=not settings.progress,
+        ):
             if schema is None:
                 continue
 

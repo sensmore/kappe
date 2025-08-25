@@ -14,7 +14,14 @@ from kappe.module.pointcloud import SettingPointCloud
 from kappe.module.tf import SettingTF
 from kappe.module.timing import SettingTimeOffset
 from kappe.plugin import load_plugin
-from kappe.settings import SettingGeneral, SettingPlugin, Settings, SettingSchema, SettingTopic
+from kappe.settings import (
+    ROS2Distro,
+    SettingGeneral,
+    SettingPlugin,
+    Settings,
+    SettingSchema,
+    SettingTopic,
+)
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -42,16 +49,17 @@ def convert_worker(arg: tuple[Path, Path, Settings, int]) -> None:
     input_path, output_path, config, tqdm_idx = arg
 
     logger.info('Writing %s', output_path)
+    conv = Converter(config, input_path, output_path)
     try:
-        conv = Converter(config, input_path, output_path)
         conv.process_file(tqdm_idx)
-        conv.finish()
-
     except KeyboardInterrupt:
         logger.info('WORKER: Keyboard interrupt')
         return
     except Exception:
         logger.exception('Failed to convert %s', input_path)
+        raise
+    finally:
+        conv.finish()
 
     logger.info('Done    %s', output_path)
 
@@ -117,7 +125,7 @@ class KappeCLI:
         """
         self.progress = progress
 
-    def convert(  # noqa: PLR0913, PLR0912, PLR0915
+    def convert(  # noqa: PLR0913, PLR0912
         self,
         input: list[Path] | Path,  # noqa: A002
         output: Path,
@@ -127,7 +135,7 @@ class KappeCLI:
         tf_static: SettingTF | None = None,
         tf: SettingTF | None = None,
         msg_schema: SettingSchema | None = None,
-        msg_folder: Path | None = Path('./msgs'),
+        msg_folder: Path | None = None,
         point_cloud: dict[str, SettingPointCloud] | None = None,
         time_offset: dict[str, SettingTimeOffset] | None = None,
         plugins: list[SettingPlugin] | None = None,
@@ -138,6 +146,7 @@ class KappeCLI:
         save_metadata: bool = True,
         overwrite: bool = False,
         frame_id_mapping: dict[str, str] | None = None,
+        ros_distro: ROS2Distro = ROS2Distro.HUMBLE,
     ) -> None:
         """Convert mcap(s) with changing, filtering, converting, ... data.
 
@@ -159,6 +168,7 @@ class KappeCLI:
             time_end: End time of the new MCAP.
             keep_all_static_tf: If true ensue all /tf_static messages are in the outputted file.
             overwrite: If true already existing files will be overwritten.
+            ros_distro: ROS2 distribution to use for message definitions.
         """
 
         # TODO: cleanup
@@ -181,23 +191,25 @@ class KappeCLI:
         if plugins is None:
             plugins = []
 
-        config = Settings()
-        config.general = general
-        config.topic = topic
-        config.tf_static = tf_static
-        config.tf = tf
-        config.msg_schema = msg_schema
-        config.point_cloud = point_cloud
-        config.time_offset = time_offset
-        config.plugins = plugins
-        config.time_start = time_start
-        config.time_end = time_end
-        config.keep_all_static_tf = keep_all_static_tf
-        config.msg_folder = msg_folder
-        config.plugin_folder = plugin_folder
-        config.progress = self.progress
-        config.save_metadata = save_metadata
-        config.frame_id_mapping = frame_id_mapping
+        config = Settings(
+            general=general,
+            topic=topic,
+            tf_static=tf_static,
+            tf=tf,
+            msg_schema=msg_schema,
+            point_cloud=point_cloud,
+            time_offset=time_offset,
+            plugins=plugins,
+            time_start=time_start,
+            time_end=time_end,
+            keep_all_static_tf=keep_all_static_tf,
+            msg_folder=msg_folder,
+            plugin_folder=plugin_folder,
+            progress=self.progress,
+            save_metadata=save_metadata,
+            frame_id_mapping=frame_id_mapping,
+            ros_distro=ros_distro,
+        )
 
         # check for msgs folder
         if msg_folder is not None and not msg_folder.exists():
@@ -276,6 +288,7 @@ class KappeCLI:
             keep_tf_tree=keep_tf_tree,
             splits=splits,
             split_on_topic=split_on_topic,
+            progress=self.progress,
         )
 
         cutter(mcap, output, config)

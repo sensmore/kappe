@@ -1,0 +1,4 @@
+topic:
+  remove:
+    - /topic1
+    - /topic3

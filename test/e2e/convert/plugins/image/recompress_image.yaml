@@ -1,0 +1,6 @@
+plugins:
+  - name: image.ReCompress
+    input_topic: /camera/compressed
+    output_topic: /camera/compressed
+    settings:
+      quality: 10

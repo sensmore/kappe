@@ -1,0 +1,10 @@
+# Message ordering test for cut operation
+# Tests that original input file order is preserved within each time-based split
+# regardless of log_time, publish_time, or sequence values
+splits:
+  - start: 1676549300.0
+    end: 1676549520.0
+    name: first.mcap
+  - start: 1676549520.0
+    end: 1676549850.0
+    name: second.mcap

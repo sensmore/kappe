@@ -1,0 +1,3 @@
+msg_schema:
+  mapping:
+    std_msgs/Int32: std_msgs/Int64
