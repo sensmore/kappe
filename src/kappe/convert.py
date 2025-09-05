@@ -308,6 +308,14 @@ class Converter:
                     publish_time=message.log_time,
                 )
 
+        # Apply frame_id mapping
+        if (
+            (new_frame_id := self.config.frame_id_mapping.get(topic))
+            and hasattr(msg.decoded_message, 'header')
+            and hasattr(msg.decoded_message.header, 'frame_id')
+        ):
+            msg.decoded_message.header.frame_id = new_frame_id
+
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
