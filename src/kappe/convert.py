@@ -11,6 +11,8 @@ from mcap.records import Channel, Schema
 from mcap.well_known import Profile, SchemaEncoding
 from mcap_ros1.decoder import DecoderFactory as Ros1DecoderFactory
 from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
+from mcap_protobuf.decoder import DecoderFactory as ProtobufDecoderFactory
+from google.protobuf.message import Message as ProtobufMessage
 from pydantic_yaml import to_yaml_str
 from tqdm import tqdm
 
@@ -25,7 +27,7 @@ from kappe.module.tf import (
     tf_static_insert,
 )
 from kappe.module.timing import fix_ros1_time, time_offset
-from kappe.plugin import ConverterPlugin, load_plugin
+from kappe.plugin import ConverterPlugin, ProtobufConverterPlugin, load_plugin
 from kappe.settings import Settings
 from kappe.utils.msg_def import get_message_definition
 from kappe.writer import WrappedDecodedMessage, WrappedWriter
@@ -110,6 +112,11 @@ class Converter:
                 out_schema = conv.output_schema
                 if out_schema in self.schema_list:
                     continue
+                if isinstance(conv, ProtobufConverterPlugin):
+                    self.schema_list[out_schema] = self.writer.register_protobuf(
+                        out_schema, conv.descriptor.file.serialized_pb
+                    )
+                    continue
 
                 new_data = get_message_definition(out_schema, self.config.msg_folder)
 
@@ -131,7 +138,13 @@ class Converter:
 
         self.schema_original[schema.id] = schema
 
-        if schema.encoding not in [SchemaEncoding.ROS1, SchemaEncoding.ROS2]:
+        if schema.encoding == SchemaEncoding.Protobuf:
+            self.schema_list[schema.name] = self.writer.register_protobuf(schema.name, schema.data)
+            return
+        if schema.encoding not in [
+            SchemaEncoding.ROS1,
+            SchemaEncoding.ROS2,
+        ]:
             logger.warning(
                 'Schema "%s" has unsupported encoding "%s", skipping.',
                 schema.name,
@@ -281,7 +294,7 @@ class Converter:
             decoder = Ros1DecoderFactory()
         elif self.mcap_header.profile != Profile.ROS2:
             warnings.warn(
-                f'Unsupported profile: {self.mcap_header.profile}, trying to read as ROS2',
+                f'Unsupported profile: "{self.mcap_header.profile}", trying to read as ROS2',
                 RuntimeWarning,
                 stacklevel=1,
             )
@@ -289,7 +302,7 @@ class Converter:
         if self.summary:
             reader = make_reader(
                 self.f_reader,
-                decoder_factories=[decoder],
+                decoder_factories=[decoder, ProtobufDecoderFactory()],
             )
         else:
             reader = NonSeekingReader(self.f_reader)
@@ -341,7 +354,9 @@ class Converter:
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
-            if conv_msg := conv.convert(msg.decoded_message):
+            if conv_msg := conv.convert2(
+                msg.decoded_message, msg.message.log_time, msg.message.publish_time
+            ):
                 # TODO: pass this to process_message?
                 self.writer.write_message(
                     topic=output_topic,
@@ -500,13 +515,13 @@ class Converter:
 
         filtered_channels = self.get_selected_channels()
 
-        msg_iter = self.read_ros_messaged(
+        ros_msg_iter = self.read_ros_messaged(
             topics=filtered_channels,
             start_time=start_time if self.config.time_start else None,
             end_time=end_time if self.config.time_end else None,
         )
-        if msg_iter is None:
-            raise ValueError('msg_iter is None')
+        if ros_msg_iter is None:
+            raise ValueError('ros_msg_iter is None')
 
         if filtered_channels and self.summary:
             logger.info(
@@ -526,7 +541,7 @@ class Converter:
             else None,
             disable=not self.config.progress,
         ) as pbar:
-            for msg in msg_iter:
+            for msg in ros_msg_iter:
                 message = msg.message
                 log_time = message.log_time
                 if start_time is None:
