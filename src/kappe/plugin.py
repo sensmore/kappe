@@ -4,7 +4,7 @@ from collections.abc import Callable
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, Optional
 from google.protobuf.descriptor import Descriptor
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,11 @@ class ConverterPlugin(ABC):
     @abstractmethod
     def convert(self, ros_msg: Any) -> Any:
         pass
+
+    def convert2(
+        self, ros_msg: Any, log_time_ns: Optional[int] = None, publish_time_ns: Optional[int] = None
+    ) -> Any:
+        return self.convert(ros_msg)
 
 
 class ProtobufConverterPlugin(ConverterPlugin):

@@ -340,7 +340,9 @@ class Converter:
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
-            if conv_msg := conv.convert(msg.decoded_message):
+            if conv_msg := conv.convert2(
+                msg.decoded_message, msg.message.log_time, msg.message.publish_time
+            ):
                 # TODO: pass this to process_message?
                 self.writer.write_message(
                     topic=output_topic,
