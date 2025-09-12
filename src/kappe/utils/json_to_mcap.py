@@ -89,7 +89,7 @@ def json_to_mcap(
         output_file: Path to write MCAP file
         json_path: Path to input JSONL file
         skip_index: If True, creates unindexed MCAP (no summary/index sections)
-        destroy_footer: If True, creates MCAP without footer (for testing)
+        destroy_footer: If True, creates MCAP with broken footer MAGIC (for testing)
     """
 
     with (

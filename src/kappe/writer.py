@@ -22,6 +22,10 @@ from mcap_ros2._dynamic import (
 from kappe import __version__
 
 
+class ROS1DecodeError(McapError):
+    """Raised if a MCAP message record cannot be decoded as a ROS1 message."""
+
+
 class ROS2DecodeError(McapError):
     """Raised if a MCAP message record cannot be decoded as a ROS2 message."""
 
@@ -32,13 +36,13 @@ class ROS2EncodeError(McapError):
 
 def _get_decoder_ros1(schema: Schema) -> DecoderFunction:
     if schema.encoding != SchemaEncoding.ROS1:
-        raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema}"')
+        raise ROS1DecodeError(f'can\'t parse schema with encoding "{schema}"')
 
     type_dict: dict[str, type[Any]] = ros1_dynamic.generate_dynamic(
         schema.name, schema.data.decode()
     )
     if schema.name not in type_dict:
-        raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
+        raise ROS1DecodeError(f'schema parsing failed for "{schema.name}"')
     generated_type = type_dict[schema.name]
 
     def decoder(data: bytes):  # noqa: ANN202

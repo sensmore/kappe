@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import IO
 
-from mcap.reader import make_reader
 from mcap.records import Channel, Message, Schema
 from mcap.writer import Writer
 from pydantic import BaseModel, Field, model_validator
@@ -184,9 +183,7 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
     max_end_time = int(max([split.end for split in settings.splits]) * 1e9)
 
     with input_file.open('rb') as f:
-        reader = make_reader(f)
-
-        profile = reader.get_header().profile
+        profile = get_header(f).profile
         for split in settings.splits:
             out = output / split.name
             outputs.append(SplitWriter(str(out), profile))

@@ -8,7 +8,7 @@ import pytest
 from kappe.plugin import ConverterPlugin, load_plugin, module_get_plugins
 
 
-class OneConverterPlugin(ConverterPlugin):
+class _OneConverterPlugin(ConverterPlugin):
     @property
     def output_schema(self) -> str:
         return 'test_schema'
@@ -17,7 +17,7 @@ class OneConverterPlugin(ConverterPlugin):
         return {'converted': ros_msg}
 
 
-class AnotherTestPlugin(ConverterPlugin):
+class _AnotherTestPlugin(ConverterPlugin):
     @property
     def output_schema(self) -> str:
         return 'another_schema'
@@ -34,10 +34,10 @@ def test_converter_plugin_abstract():
 
 def test_converter_plugin_implementation():
     """Test that ConverterPlugin can be properly implemented."""
-    plugin = OneConverterPlugin()
+    plugin = _OneConverterPlugin()
     assert plugin.output_schema == 'test_schema'
     assert plugin.convert({'test': 'data'}) == {'converted': {'test': 'data'}}
-    assert plugin.logger.name == 'OneConverterPlugin'
+    assert plugin.logger.name == '_OneConverterPlugin'
 
 
 def test_module_get_plugins():
@@ -45,8 +45,8 @@ def test_module_get_plugins():
     # Create a mock module with our test classes
     mock_module = MagicMock()
     mock_module.__dict__ = {
-        'OneConverterPlugin': OneConverterPlugin,
-        'AnotherTestPlugin': AnotherTestPlugin,
+        'OneConverterPlugin': _OneConverterPlugin,
+        'AnotherTestPlugin': _AnotherTestPlugin,
         'ConverterPlugin': ConverterPlugin,
         'SomeOtherClass': str,
         'not_a_class': 'string_value',
@@ -181,15 +181,16 @@ def test_load_plugin_from_builtin_plugins():
             patch('kappe.plugin.spec_from_loader') as mock_spec_from_loader,
             patch('kappe.plugin.module_from_spec') as mock_module_from_spec,
         ):
-            mock_module = MagicMock()
-            mock_module.Converter = OneConverterPlugin
             mock_spec = MagicMock()
             mock_spec.loader = mock_loader.return_value
             mock_spec_from_loader.return_value = mock_spec
+            mock_module = MagicMock()
+            mock_module.Converter = _OneConverterPlugin
             mock_module_from_spec.return_value = mock_module
 
             plugin_class = load_plugin(None, 'test_plugin')
-            assert plugin_class == OneConverterPlugin
+            assert plugin_class == _OneConverterPlugin
+            assert plugin_class.__name__ == '_OneConverterPlugin'
 
 
 def test_load_plugin_spec_creation_failure(tmp_path: Path):
