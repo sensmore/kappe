@@ -1,0 +1,2 @@
+{"datatype":"sensor_msgs/msg/Joy","log_time":12750000000,"message":{"axes":[],"buttons":[],"header":{"frame_id":"test_frame","stamp":{"nanosec":750000000,"sec":12}}},"publish_time":12750000000,"sequence":0,"topic":"/test_topic"}
+{"datatype":"sensor_msgs/msg/Joy","log_time":1000000000,"message":{"axes":[],"buttons":[],"header":{"frame_id":"test_frame","stamp":{"nanosec":750000000,"sec":25}}},"publish_time":2000000000,"sequence":1,"topic":"/unaffected_topic"}

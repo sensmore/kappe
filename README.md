@@ -19,7 +19,8 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
     - [Topic](#topic)
       - [Rename a topic](#rename-a-topic)
       - [Remove a topic](#remove-a-topic)
-      - [Change message `frame_id`](#change-message-frame_id)
+    - [Frame ID Mapping](#frame-id-mapping)
+    - [Drop Messages](#drop-messages)
     - [Topic Times](#topic-times)
       - [Update the ROS header time](#update-the-ros-header-time)
       - [Change ROS Timestamp to publish time](#change-ros-timestamp-to-publish-time)
@@ -45,19 +46,25 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
 
 </details>
 
-------
+---
 
 ## Installation
 
-`pip install kappe`
+```sh
+pip install kappe
+```
 
 or
 
-`uv tools install kappe`
+```sh
+uv tool install kappe
+```
 
 or
 
-`uvx kappe`
+```sh
+uvx kappe
+```
 
 ### Usage
 
@@ -81,6 +88,8 @@ Run the converter:
 
 `kappe convert [-h] [--config CONFIG] [--overwrite] input output`
 
+For complete option details use `kappe convert --help`.
+
 Converts a single file or a directory of files to the MCAP format.
 
 ### Topic
@@ -101,14 +110,25 @@ topic:
     - /points
 ```
 
-#### Change message `frame_id`
+### Frame ID Mapping
 
-To change the `frame_id` for specific topics, you can use `frame_id_mapping` in your configuration:
+To change the `frame_id` for specific topics globally, you can use `frame_id_mapping` in your configuration:
 
 ```yaml
 frame_id_mapping:
   "/imu/data": "imu_link_new"
   "/lidar/points": "lidar_frame_new"
+```
+
+### Drop Messages
+
+To drop every nth message from a topic:
+
+```yaml
+topic:
+  drop:
+    /high_frequency_topic: 2 # Keep every 2nd message
+    /camera/image: 10 # Keep every 10th message
 ```
 
 ### Topic Times
@@ -182,6 +202,7 @@ point_cloud:
         - 0
         - 0
 ```
+
 #### Remove ego bounding box points from the pointcloud
 
 ```yaml
@@ -198,7 +219,6 @@ point_cloud:
         min: -0.2
         max: 1.5
 ```
-
 
 #### Rename PointCloud2 field name
 
@@ -340,7 +360,14 @@ time_end:    1676549554.0
 
 ### Plugins
 
-Kappe can be extended with plugins, for example to compress images or update camera calibration. Source code for plugins can be found in the [plugins](./src/kappe/), additional plugins can be loaded from `./plugins`.
+Kappe can be extended with plugins, for example to compress images or update camera calibration. Source code for plugins can be found in [src/kappe/plugins/](./src/kappe/plugins/), additional plugins can be loaded from `./plugins`.
+
+**Available built-in plugins:**
+
+- `image.CompressImage` - Compress RGB images to JPEG
+- `image.CropImage` - Crop images to specified bounds
+- `camera_info.UpdateCameraInfo` - Update camera calibration parameters
+- `camera_info.InsertCameraInfo` - Insert camera calibration from image topics
 
 ```yaml
 plugins:
@@ -352,9 +379,9 @@ plugins:
 
   - name: camera_info.UpdateCameraInfo
     input_topic: /camera/camera_info
-    output_topic: /camera/camera_info  # Must remove /camera/camera_info topic (see above)
+    output_topic: /camera/camera_info # Must remove /camera/camera_info topic (see above)
     settings:
-      camera_info:  # https://wiki.ros.org/camera_calibration_parsers#File_formats
+      camera_info: # https://wiki.ros.org/camera_calibration_parsers#File_formats
         image_height: 1080
         image_width: 1920
         camera_matrix:
@@ -472,17 +499,8 @@ plugins:
 
 ### ROS1 to ROS2 conversion
 
-Kappe automatic converts ROS1 messages to ROS2 messages.
-It will not reuse ROS1 definitions, all schemas will be loaded either from your ROS2 environment or from `./msgs`. If the ROS2 schema name has changed use the `msg_schema.mapping` to map the old schema to the new schema.
-
-The msg field will be mapped exactly, ROS1 time and duration will be converted to ROS2 time and duration (`secs -> sec` & `nsecs -> nanosec`).
-
-To download the common ROS2 schemas run:
-
-```sh
-git clone --depth=1 --branch=humble https://github.com/ros2/common_interfaces.git ./msgs/common_interfaces
-git clone --depth=1 --branch=humble https://github.com/ros2/geometry2.git ./msgs/geometry2
-```
+Kappe automatically converts ROS1 messages to ROS2 messages.
+For ROS2 message definitions, Kappe will automatically download them from GitHub based on the specified ROS2 distribution (`ros_distro`). Supported distributions: **HUMBLE** (default), IRON (EOL), JAZZY, KILTED, ROLLING. If needed, you can still provide custom message definitions in `./msgs` folder. If the ROS2 schema name has changed use the `msg_schema.mapping` to map the old schema to the new schema.
 
 ### Reproducibility
 
@@ -491,9 +509,11 @@ The config will be saved as an attachment named `convert_config.yaml`.
 
 ## Cut
 
-`usage: kappe cut [-h] --config CONFIG [--overwrite] input [output_folder]`
+`kappe cut [-h] [--config CONFIG] [--overwrite] mcap [output]`
 
-Cuts a directory of mcaps into smaller mcaps, based on timestamp or topic.
+Cuts a mcap file into smaller mcaps, based on timestamp or topic.
+
+For complete option details use `kappe cut --help`.
 
 When `keep_tf_tree` is set to `true` all splits will have the same `/tf_static` messages.
 
@@ -505,12 +525,12 @@ They are specified in seconds which is compared against the log time (UNIX Times
 ```yaml
 keep_tf_tree: true
 splits:
-  - start:  1676549454.0
-    end:    1676549554.0
-    name:   beginning.mcap
-  - start:  1676549554.0
-    end:    1676549654.0
-    name:   end.mcap
+  - start: 1676549454.0
+    end: 1676549554.0
+    name: beginning.mcap
+  - start: 1676549554.0
+    end: 1676549654.0
+    name: end.mcap
 ```
 
 `kappe cut --config config.yaml ./input.mcap ./output_folder`
@@ -534,5 +554,4 @@ keep_tf_tree: true
 split_on_topic:
   topic: "/marker"
   debounce: 10
-
 ```

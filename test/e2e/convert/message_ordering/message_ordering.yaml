@@ -1,0 +1,3 @@
+# Message ordering test - passthrough configuration
+# Tests that original input file order is preserved regardless of timestamps/sequence values
+{}

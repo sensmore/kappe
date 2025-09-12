@@ -1,0 +1,17 @@
+plugins:
+  - name: camera_info.UpdateCameraInfo
+    input_topic: /camera_info
+    output_topic: /camera_info
+    settings:
+      camera_info:
+        image_height: 720
+        image_width: 1280
+        distortion_model: "equidistant"
+        distortion_coefficients:
+          data: [0.01, 0.02, 0.03, 0.04]
+        camera_matrix:
+          data: [800.0, 0.0, 640.0, 0.0, 800.0, 360.0, 0.0, 0.0, 1.0]
+        rectification_matrix:
+          data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+        projection_matrix:
+          data: [800.0, 0.0, 640.0, 0.0, 0.0, 800.0, 360.0, 0.0, 0.0, 0.0, 1.0, 0.0]

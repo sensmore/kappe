@@ -1,0 +1,3 @@
+{"datatype":"std_msgs/msg/String","log_time":1676549456000000000,"message":{"data":"first split trigger"},"publish_time":1676549456000000000,"sequence":1,"topic":"/marker"}
+{"datatype":"std_msgs/msg/String","log_time":1676549458000000000,"message":{"data":"too soon - should be debounced"},"publish_time":1676549458000000000,"sequence":2,"topic":"/marker"}
+{"datatype":"std_msgs/msg/String","log_time":1676549460000000000,"message":{"data":"middle"},"publish_time":1676549460000000000,"sequence":3,"topic":"/other"}

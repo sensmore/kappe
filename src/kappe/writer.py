@@ -1,5 +1,5 @@
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from io import BufferedWriter
 from typing import IO, Any
 
@@ -7,8 +7,11 @@ import mcap
 from mcap.exceptions import McapError
 from mcap.records import Channel, Message, Schema
 from mcap.well_known import SchemaEncoding
-from mcap.writer import CompressionType
+from mcap.writer import CompressionType, IndexType
 from mcap.writer import Writer as McapWriter
+
+# TODO: vendor these
+from mcap_ros1._vendor.genpy import dynamic as ros1_dynamic
 from mcap_ros2._dynamic import (
     DecoderFunction,
     EncoderFunction,
@@ -19,6 +22,10 @@ from mcap_ros2._dynamic import (
 from kappe import __version__
 
 
+class ROS1DecodeError(McapError):
+    """Raised if a MCAP message record cannot be decoded as a ROS1 message."""
+
+
 class ROS2DecodeError(McapError):
     """Raised if a MCAP message record cannot be decoded as a ROS2 message."""
 
@@ -27,30 +34,70 @@ class ROS2EncodeError(McapError):
     """Raised if a ROS2 message cannot be encoded."""
 
 
-def get_decoder(schema: Schema, cache: dict[int, DecoderFunction]) -> DecoderFunction:
-    if schema is None or schema.encoding != SchemaEncoding.ROS2:
-        raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema}"')
-    decoder = cache.get(schema.id)
-    if decoder is None:
-        type_dict = generate_dynamic(schema.name, schema.data.decode())
-        if schema.name not in type_dict:
-            raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
-        decoder = type_dict[schema.name]
-        cache[schema.id] = decoder
+def _get_decoder_ros1(schema: Schema) -> DecoderFunction:
+    if schema.encoding != SchemaEncoding.ROS1:
+        raise ROS1DecodeError(f'can\'t parse schema with encoding "{schema}"')
+
+    type_dict: dict[str, type[Any]] = ros1_dynamic.generate_dynamic(
+        schema.name, schema.data.decode()
+    )
+    if schema.name not in type_dict:
+        raise ROS1DecodeError(f'schema parsing failed for "{schema.name}"')
+    generated_type = type_dict[schema.name]
+
+    def decoder(data: bytes):  # noqa: ANN202
+        ros_msg = generated_type()
+        ros_msg.deserialize(data)
+        return ros_msg
+
     return decoder
 
 
-def get_encoder(schema: Schema, cache: dict[int, EncoderFunction]) -> EncoderFunction:
-    encoder = cache.get(schema.id)
+def _get_decoder_ros2(schema: Schema) -> DecoderFunction:
+    if schema.encoding != SchemaEncoding.ROS2:
+        raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema}"')
+
+    type_dict = generate_dynamic(schema.name, schema.data.decode())
+    if schema.name not in type_dict:
+        raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
+    return type_dict[schema.name]
+
+
+_decoder_cache: dict[int, DecoderFunction] = {}
+
+
+def get_decoder(schema: Schema) -> DecoderFunction:
+    cache_key = hash((schema.id, schema.name, schema.data))
+    decoder = _decoder_cache.get(cache_key)
+    if decoder is not None:
+        return decoder
+
+    if schema.encoding == SchemaEncoding.ROS2:
+        decoder = _get_decoder_ros2(schema)
+    elif schema.encoding == SchemaEncoding.ROS1:
+        decoder = _get_decoder_ros1(schema)
+    else:
+        raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
+    _decoder_cache[cache_key] = decoder
+    return decoder
+
+
+_encoder_cache: dict[int, EncoderFunction] = {}
+
+
+def get_encoder(schema: Schema) -> EncoderFunction:
+    if schema.encoding != SchemaEncoding.ROS2:
+        raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
+
+    cache_key = hash((schema.id, schema.name, schema.data))
+    encoder = _encoder_cache.get(cache_key)
     if encoder is None:
-        if schema.encoding != SchemaEncoding.ROS2:
-            raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
         type_dict = serialize_dynamic(schema.name, schema.data.decode())
         # Check if schema.name is in type_dict
         if schema.name not in type_dict:
             raise ROS2EncodeError(f'schema parsing failed for "{schema.name}"')
         encoder = type_dict[schema.name]
-        cache[schema.id] = encoder
+        _encoder_cache[cache_key] = encoder
 
     return encoder
 
@@ -61,13 +108,12 @@ class WrappedDecodedMessage:
     channel: Channel
     message: Message
 
-    decoder_cache: dict[int, DecoderFunction] = field(default_factory=dict)
     _decoded_message: Any | None = None
 
     def decode(self) -> Any:
         assert self.schema is not None
         if self._decoded_message is None:
-            decoder = get_decoder(self.schema, self.decoder_cache)
+            decoder = get_decoder(self.schema)
             self._decoded_message = decoder(self.message.data)
         return self._decoded_message
 
@@ -75,11 +121,13 @@ class WrappedDecodedMessage:
     def decoded_message(self) -> Any:
         return self.decode()
 
-    def encode(self, cache: dict[int, EncoderFunction]) -> bytes:
+    def encode(self) -> bytes:
+        # NOTE: this uses the original schema, which might have an colliding schema.id with
+        # the output
         if self._decoded_message is None:
             return self.message.data
         assert self.schema is not None
-        encoder = get_encoder(self.schema, cache)
+        encoder = get_encoder(self.schema)
         return encoder(self._decoded_message)
 
 
@@ -100,12 +148,14 @@ class WrappedWriter:
         chunk_size: int = 1024 * 1024,
         compression: CompressionType = CompressionType.ZSTD,
         enable_crcs: bool = True,
+        index_types: IndexType = IndexType.ALL,
     ) -> None:
         self._writer = McapWriter(
             output=output,
             chunk_size=chunk_size,
             compression=compression,
             enable_crcs=enable_crcs,
+            index_types=index_types,
         )
         self._channel_ids: dict[str, int] = {}
         self._writer.start(profile='ros2', library=_library_identifier())
@@ -147,9 +197,9 @@ class WrappedWriter:
         """
 
         if isinstance(message, WrappedDecodedMessage):
-            data = message.encode(self._encoders_cache)
+            data = message.encode()
         else:
-            encoder = get_encoder(schema, self._encoders_cache)
+            encoder = get_encoder(schema)
             data = encoder(message)
 
         if topic not in self._channel_ids:

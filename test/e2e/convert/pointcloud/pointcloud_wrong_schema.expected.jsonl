@@ -1,0 +1,2 @@
+{"datatype":"std_msgs/msg/String","log_time":1000000000,"message":{"data":"this is not a point cloud"},"publish_time":1000000000,"sequence":0,"topic":"/not_pointcloud"}
+{"datatype":"std_msgs/msg/String","log_time":2000000000,"message":{"data":"another message"},"publish_time":2000000000,"sequence":1,"topic":"/other_topic"}

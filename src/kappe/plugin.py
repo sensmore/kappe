@@ -2,6 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -54,7 +55,12 @@ def load_plugin(base_folder: Path | None, plugin_name: str) -> Callable[..., Con
             continue
 
         try:
-            module = SourceFileLoader(pkg_name, str(plugin_file)).load_module()
+            loader = SourceFileLoader(pkg_name, str(plugin_file))
+            spec = spec_from_loader(pkg_name, loader)
+            if spec is None or spec.loader is None:
+                raise ImportError(f'Could not create spec for {pkg_name}')  # noqa: TRY301
+            module = module_from_spec(spec)
+            spec.loader.exec_module(module)
         except ImportError:
             logger.debug('Plugin %s could not be loaded from %s', plugin_name, path)
             continue

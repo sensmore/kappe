@@ -1,0 +1,9 @@
+plugins:
+  - name: image.CropImage
+    input_topic: /camera/compressed
+    output_topic: /camera/compressed
+    settings:
+      x_min: 1
+      x_max: 3
+      y_min: 1
+      y_max: 3

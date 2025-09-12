@@ -1,0 +1,5 @@
+{"datatype":"std_msgs/msg/Bool","log_time":2000000000,"message":{"data":true},"publish_time":3000000000,"sequence":4,"topic":"/test_topic_a"}
+{"datatype":"std_msgs/msg/Bool","log_time":1000000000,"message":{"data":false},"publish_time":4000000000,"sequence":1,"topic":"/test_topic_a"}
+{"datatype":"std_msgs/msg/String","log_time":4000000000,"message":{"data":"first"},"publish_time":1000000000,"sequence":3,"topic":"/test_topic_b"}
+{"datatype":"std_msgs/msg/Bool","log_time":3000000000,"message":{"data":true},"publish_time":2000000000,"sequence":2,"topic":"/test_topic_a"}
+{"datatype":"std_msgs/msg/String","log_time":5000000000,"message":{"data":"second"},"publish_time":5000000000,"sequence":5,"topic":"/test_topic_b"}

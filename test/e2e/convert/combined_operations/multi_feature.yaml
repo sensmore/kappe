@@ -1,0 +1,24 @@
+topic:
+  mapping:
+    /old_topic: /new_topic
+    /points: /sensor/points
+
+frame_id_mapping:
+  "/new_topic": "new_frame"
+
+time_offset:
+  default:
+    sec: 5
+
+point_cloud:
+  /points:
+    remove_zero: true
+
+tf_static:
+  insert:
+    - frame_id: base
+      child_frame_id: sensor
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 1.0

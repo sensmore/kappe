@@ -35,7 +35,7 @@ def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
         org_len = len(cloud)
 
         if cfg.remove_zero:
-            cloud = cloud[np.logical_and(cloud['x'] != 0.0, cloud['y'] != 0.0, cloud['z'] != 0.0)]
+            cloud = cloud[np.logical_or(cloud['x'] != 0.0, cloud['y'] != 0.0, cloud['z'] != 0.0)]
 
         if cfg.ego_bounds is not None:
             # Create individual boolean masks for each condition
@@ -53,7 +53,7 @@ def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
             ego_mask = np.logical_not(np.logical_and(np.logical_and(x_mask, y_mask), z_mask))
             cloud = cloud[ego_mask]
 
-        quat = cfg.rotation.to_quaternion()
+        quat = cfg.rotation.quaternion
         if quat is not None:
             rot = Rotation.from_quat(np.array(quat))
             stack = np.column_stack([cloud['x'], cloud['y'], cloud['z']])

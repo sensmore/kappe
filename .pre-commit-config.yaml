@@ -46,3 +46,12 @@ repos:
         args: ["--verbose"]
       - id: check-dependabot
         args: ["--verbose"]
+
+  - repo: local
+    hooks:
+      - id: format-e2e-test
+        name: Format E2E test JSONL files
+        entry: python format_e2e_test.py
+        language: python
+        files: '\.jsonl$'
+        pass_filenames: false

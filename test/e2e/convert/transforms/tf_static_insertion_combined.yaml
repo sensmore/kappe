@@ -1,0 +1,16 @@
+tf_static:
+  insert:
+    - frame_id: "base_link"
+      child_frame_id: "new_static_frame"
+      translation:
+        x: 1.0
+        y: 2.0
+        z: 3.0
+    - frame_id: "base_link"
+      child_frame_id: "rotated_static_frame"
+      translation:
+        x: 2.0
+        y: 1.0
+        z: 0.5
+      rotation:
+        quaternion: [0.0, 0.7071067811865475, 0.0, 0.7071067811865476]

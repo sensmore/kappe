@@ -1,0 +1,4 @@
+msg_schema:
+  definition:
+    std_msgs/msg/String: |
+      string data

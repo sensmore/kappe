@@ -1,0 +1,2 @@
+{"datatype":"std_msgs/msg/String","log_time":1000000000,"message":{"data":"keep this"},"publish_time":1000000000,"sequence":0,"topic":"/wanted_topic"}
+{"datatype":"std_msgs/msg/String","log_time":3000000000,"message":{"data":"keep this too"},"publish_time":3000000000,"sequence":2,"topic":"/another_wanted_topic"}

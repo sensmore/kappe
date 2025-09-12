@@ -1,0 +1,1 @@
+{"datatype":"sensor_msgs/msg/Joy","log_time":0,"message":{"axes":[],"buttons":[],"header":{"frame_id":"old_frame_id","stamp":{"nanosec":0,"sec":1}}},"publish_time":0,"sequence":0,"topic":"/test_topic"}

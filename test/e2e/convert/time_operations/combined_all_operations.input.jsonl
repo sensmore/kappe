@@ -1,0 +1,4 @@
+{"datatype":"std_msgs/msg/Header","log_time":1000000000,"message":{"frame_id":"test","stamp":{"nanosec":0,"sec":10}},"publish_time":1000000000,"sequence":1,"topic":"/default_topic"}
+{"datatype":"std_msgs/msg/Header","log_time":2000000000,"message":{"frame_id":"test2","stamp":{"nanosec":0,"sec":15}},"publish_time":5000000000,"sequence":2,"topic":"/pub_time_topic"}
+{"datatype":"std_msgs/msg/Header","log_time":3000000000,"message":{"frame_id":"test3","stamp":{"nanosec":0,"sec":20}},"publish_time":4000000000,"sequence":3,"topic":"/mcap_update_topic"}
+{"datatype":"std_msgs/msg/Header","log_time":6000000000,"message":{"frame_id":"test4","stamp":{"nanosec":0,"sec":30}},"publish_time":7000000000,"sequence":4,"topic":"/unaffected_topic"}

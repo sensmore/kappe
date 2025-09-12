@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from scipy.spatial.transform import Rotation
 
 
-class AxisBound(BaseModel):
+class AxisBound(BaseModel, frozen=True):
     """
     Axis bound settings.
 
@@ -14,7 +14,7 @@ class AxisBound(BaseModel):
     max: float = 0.0
 
 
-class SettingEgoBounds(BaseModel):
+class SettingEgoBounds(BaseModel, frozen=True):
     """
     Ego bounds settings.
 
@@ -28,28 +28,45 @@ class SettingEgoBounds(BaseModel):
     z: AxisBound = AxisBound()
 
 
-class SettingRotation(BaseModel):
+class SettingRotation(BaseModel, frozen=True):
     """
     Rotation settings.
 
-    If booth quaternion and euler_deg are set, quaternion is used.
+    If both quaternion and euler_deg are set, quaternion is used.
 
     :ivar quaternion: Quaternion to apply.
     :ivar euler_deg: Euler angles to apply.
     """
 
     quaternion: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)
+    euler_deg: tuple[float, float, float] | None = None
 
-    @property
-    def euler_deg(self) -> tuple[float, float, float]:
-        return Rotation.from_quat(self.quaternion).as_euler('xyz', degrees=True)
+    @model_validator(mode='before')
+    @classmethod
+    def _check_mutual_exclusive(cls, data: dict) -> dict:
+        """
+        Ensure that either 'quaternion' or 'euler_deg' is provided, but not both.
+        """
+        q = data.get('quaternion')
+        e = data.get('euler_deg')
 
-    @euler_deg.setter
-    def euler_deg(self, value: tuple[float, float, float]) -> None:
-        self.quaternion = Rotation.from_euler('xyz', value, degrees=True).as_quat()
+        q_supplied = q is not None and q != (0.0, 0.0, 0.0, 1.0)
+        e_supplied = e is not None
+
+        if q_supplied and e_supplied:
+            raise ValueError("Provide either 'quaternion' or 'euler_deg', not both.")
+        return data
+
+    @model_validator(mode='after')
+    def _derive_quaternion(self) -> 'SettingRotation':
+        if self.euler_deg is not None:
+            quat = Rotation.from_euler('XYZ', self.euler_deg, degrees=True).as_quat()
+            # model is frozen - bypass immutability for derived field
+            object.__setattr__(self, 'quaternion', tuple(float(v) for v in quat))
+        return self
 
 
-class SettingTranslation(BaseModel):
+class SettingTranslation(BaseModel, frozen=True):
     """
     Translation settings.
 
