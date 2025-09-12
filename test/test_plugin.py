@@ -90,6 +90,8 @@ class MyConverter(ConverterPlugin):
     assert isinstance(plugin.logger, logging.Logger)
     assert plugin.logger.name == 'MyConverter'
     assert plugin.convert({'test': 'data'}) == {'my_converted': {'test': 'data'}}
+    assert isinstance(plugin, ConverterPlugin)
+    assert plugin_class.__name__ == 'MyConverter'
 
 
 def test_load_plugin_default_class_name(tmp_path: Path):
