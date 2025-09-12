@@ -50,15 +50,21 @@ Kappe is an efficient data migration tool designed to seamlessly convert and spl
 
 ## Installation
 
-`pip install kappe`
+```sh
+pip install kappe
+```
 
 or
 
-`uv tool install kappe`
+```sh
+uv tool install kappe
+```
 
 or
 
-`uvx kappe`
+```sh
+uvx kappe
+```
 
 ### Usage
 

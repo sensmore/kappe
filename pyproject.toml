@@ -88,7 +88,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Relaxed lints for test files
-"test/**/*.py" = ["T201", "SLF001", "ANN201", "INP001"]
+"test/**/*.py" = ["T201", "SLF001", "ANN201"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'

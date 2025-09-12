@@ -37,6 +37,8 @@ def _get_decoder_ros1(schema: Schema) -> DecoderFunction:
     type_dict: dict[str, type[Any]] = ros1_dynamic.generate_dynamic(
         schema.name, schema.data.decode()
     )
+    if schema.name not in type_dict:
+        raise ROS2DecodeError(f'schema parsing failed for "{schema.name}"')
     generated_type = type_dict[schema.name]
 
     def decoder(data: bytes):  # noqa: ANN202

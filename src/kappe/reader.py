@@ -21,6 +21,10 @@ from mcap.records import (
 from mcap.stream_reader import MAGIC_SIZE, StreamReader, breakup_chunk
 from mcap.summary import Summary
 
+_OPCODE_SIZE = 1
+_RECORD_LENGTH_SIZE = 8
+_RECORD_HEADER_SIZE = _OPCODE_SIZE + _RECORD_LENGTH_SIZE
+
 
 def _read_summary_from_stream_reader(stream_reader: StreamReader) -> Summary | None:
     """read summary records from an MCAP stream reader, collecting them into a Summary."""
@@ -154,7 +158,7 @@ def _read_message_seeking(
 
     def reader() -> Generator[McapRecord, None, None]:
         for cidx in chunk_indexes:
-            stream.seek(cidx.chunk_start_offset + 1 + 8, io.SEEK_SET)
+            stream.seek(cidx.chunk_start_offset + _RECORD_HEADER_SIZE, io.SEEK_SET)
             chunk = Chunk.read(ReadDataStream(stream))
             yield from breakup_chunk(chunk)
 

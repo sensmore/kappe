@@ -12,7 +12,7 @@ from .conftest import e2e_test_helper
 MALFORMATION_TYPES = [
     pytest.param({}, id='normal'),
     pytest.param({'skip_index': True}, id='missing_index'),
-    pytest.param({'skip_footer': True}, id='missing_footer'),
+    pytest.param({'destroy_footer': True}, id='broken_footer'),
 ]
 
 
@@ -60,7 +60,7 @@ def test_e2e(
         assert expected_warning in caplog.text, (
             f'Expected "{expected_warning}" for {malformed_options}'
         )
-    elif malformed_options.get('skip_footer'):
+    elif malformed_options.get('destroy_footer'):
         expected_warning = 'Broken MCAP, trying to read, CAN BE SLOW!'
         assert expected_warning in caplog.text, (
             f'Expected "{expected_warning}" for {malformed_options}'

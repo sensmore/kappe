@@ -13,17 +13,36 @@ TEST_TIMESTAMP = 1234567890
 TEST_TIMESTAMP_NS = TEST_TIMESTAMP * 1_000_000_000
 
 
+def create_test_data_message(
+    datatype: str = 'std_msgs/msg/Bool',
+    topic: str = '/test_topic',
+    message_data: dict[str, Any] | None = None,
+    sequence: int = 0,
+) -> dict[str, Any]:
+    """Create a test message with the given parameters."""
+    if message_data is None:
+        assert datatype == 'std_msgs/msg/Bool', 'Default message data only applies to Bool messages'
+        message_data = {'data': True}
+
+    return {
+        'topic': topic,
+        'log_time': TEST_TIMESTAMP_NS,
+        'publish_time': TEST_TIMESTAMP_NS,
+        'sequence': sequence,
+        'datatype': datatype,
+        'message': message_data,
+    }
+
+
 @pytest.fixture
 def sample_bool_message() -> dict[str, Any]:
     """Create a simple Bool message for testing."""
-    return {
-        'topic': '/test_topic',
-        'log_time': TEST_TIMESTAMP_NS,
-        'publish_time': TEST_TIMESTAMP_NS,
-        'sequence': 0,
-        'datatype': 'std_msgs/msg/Bool',
-        'message': {'data': True},
-    }
+    return create_test_data_message(
+        datatype='std_msgs/msg/Bool',
+        topic='/test_topic',
+        message_data={'data': True},
+        sequence=0,
+    )
 
 
 def pointcloud2_message_factory(
@@ -31,7 +50,6 @@ def pointcloud2_message_factory(
     width: int = 2,
     points: list[dict[str, float]] | None = None,
     *,
-    include_points: bool = True,
     frame_id: str = 'lidar_frame',
 ) -> dict[str, Any]:
     """Create a PointCloud2 message with optional point data."""
@@ -63,11 +81,7 @@ def pointcloud2_message_factory(
         },
     }
 
-    if include_points:
-        message['message']['points'] = points
-    else:
-        # If points are not included, we still need to provide a data field
-        message['message']['data'] = [0] * (width * 12)
+    message['message']['points'] = points
 
     return message
 
@@ -100,24 +114,3 @@ def create_test_jsonl(messages: list[dict[str, Any]], file_path: Path) -> None:
         for message in messages:
             f.write(json.dumps(message))
             f.write('\n')
-
-
-def create_test_data_message(
-    datatype: str = 'std_msgs/msg/Bool',
-    topic: str = '/test_topic',
-    message_data: dict[str, Any] | None = None,
-    sequence: int = 0,
-) -> dict[str, Any]:
-    """Create a test message with the given parameters."""
-    if message_data is None:
-        assert datatype == 'std_msgs/msg/Bool', 'Default message data only applies to Bool messages'
-        message_data = {'data': True}
-
-    return {
-        'topic': topic,
-        'log_time': TEST_TIMESTAMP_NS,
-        'publish_time': TEST_TIMESTAMP_NS,
-        'sequence': sequence,
-        'datatype': datatype,
-        'message': message_data,
-    }

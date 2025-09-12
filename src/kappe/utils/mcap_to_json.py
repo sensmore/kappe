@@ -9,7 +9,7 @@ from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
 from pointcloud2 import read_points
 
 
-def _to_dict(obj: Any, *, limit_bytearray: bool = False) -> dict | None:
+def _to_dict(obj: Any, *, save_bytearray: bool = True) -> dict | None:
     if not hasattr(obj, '__slots__'):
         return obj
     ret = {}
@@ -17,17 +17,16 @@ def _to_dict(obj: Any, *, limit_bytearray: bool = False) -> dict | None:
         value = getattr(obj, slot)
         if isinstance(value, (list, tuple)):
             ret[slot] = [
-                _to_dict(v, limit_bytearray=limit_bytearray) if v is not None else None
-                for v in value
+                _to_dict(v, save_bytearray=save_bytearray) if v is not None else None for v in value
             ]
         elif isinstance(value, (bytearray, bytes)):
             # convert to int list
-            if limit_bytearray:
-                ret[slot] = f'bytes({len(value)})'
-            else:
+            if save_bytearray:
                 ret[slot] = [int(b) for b in value]
+            else:
+                ret[slot] = f'bytes({len(value)})'
         elif hasattr(value, '__slots__'):
-            ret[slot] = _to_dict(value, limit_bytearray=limit_bytearray)
+            ret[slot] = _to_dict(value, save_bytearray=save_bytearray)
         else:
             ret[slot] = value
     return ret

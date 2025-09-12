@@ -1,11 +1,14 @@
 import logging
 from pathlib import Path
+from typing import IO
 
-from mcap.reader import McapReader, make_reader
+from mcap.reader import make_reader
 from mcap.records import Channel, Message, Schema
 from mcap.writer import Writer
 from pydantic import BaseModel, Field, model_validator
 from tqdm import tqdm
+
+from kappe.reader import get_header, get_summary, read_message
 
 logger = logging.getLogger(__name__)
 
@@ -116,10 +119,10 @@ class SplitWriter:
         self._writer.finish()
 
 
-def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]:
+def collect_tf(f: IO[bytes]) -> None | tuple[Schema, Channel, list[bytes]]:
     logger.info('Collecting static tf data')
 
-    summary = reader.get_summary()
+    summary = get_summary(f)
     assert summary is not None
     statistics = summary.statistics
     assert statistics is not None
@@ -142,10 +145,9 @@ def collect_tf(reader: McapReader) -> None | tuple[Schema, Channel, list[bytes]]
 
     tf_static_msgs = []
     for count, (_, _, message) in enumerate(
-        reader.iter_messages(
+        read_message(
+            f,
             topics=['/tf_static'],
-            # Keep original order
-            log_time_order=False,
         )
     ):
         tf_static_msgs.append(message.data)
@@ -189,18 +191,17 @@ def cutter_split(input_file: Path, output: Path, settings: CutSettings) -> None:
             out = output / split.name
             outputs.append(SplitWriter(str(out), profile))
 
-        if settings.keep_tf_tree and (ret := collect_tf(reader)):
+        if settings.keep_tf_tree and (ret := collect_tf(f)):
             tf_static_schema, tf_static_channel, tf_static_msgs = ret
             for w in outputs:
                 w.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
         pbar = tqdm(total=int((max_end_time - min_start_time) / 1e9), disable=not settings.progress)
 
-        for schema, channel, message in reader.iter_messages(
+        for schema, channel, message in read_message(
+            f,
             start_time=min_start_time,
             end_time=max_end_time,
-            # Keep original order
-            log_time_order=False,
         ):
             if schema is None:
                 continue
@@ -223,9 +224,7 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
     output.mkdir(parents=True, exist_ok=True)
 
     with input_file.open('rb') as f:
-        reader = make_reader(f)
-
-        profile = reader.get_header().profile
+        profile = get_header(f).profile
         # last split time in nanoseconds
         last_split_time = 0
         debounce_ns = int(settings.split_on_topic.debounce * 1e9)
@@ -234,18 +233,12 @@ def cutter_split_on(input_file: Path, output: Path, settings: CutSettings) -> No
         writer = SplitWriter(f'{output}/{counter:05}.mcap', profile=profile)
 
         tf_static_schema, tf_static_channel, tf_static_msgs = None, None, None
-        if settings.keep_tf_tree and (ret := collect_tf(reader)):
+        if settings.keep_tf_tree and (ret := collect_tf(f)):
             tf_static_schema, tf_static_channel, tf_static_msgs = ret
             writer.set_static_tf(tf_static_schema, tf_static_channel, tf_static_msgs)
 
         # TODO: check if topic exists
-        for schema, channel, message in tqdm(
-            reader.iter_messages(
-                # Keep original order
-                log_time_order=False,
-            ),
-            disable=not settings.progress,
-        ):
+        for schema, channel, message in tqdm(read_message(f), disable=not settings.progress):
             if schema is None:
                 continue
 

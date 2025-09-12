@@ -12,7 +12,7 @@ MALFORMATION_TYPES = [
     pytest.param({}, id='normal'),
     pytest.param({'skip_index': True}, id='missing_index'),
     # TODO: currently not supported
-    # pytest.param({'skip_footer': True}, id='missing_footer'), # noqa: ERA001
+    # pytest.param({'destroy_footer': True}, id='broken_footer'), # noqa: ERA001
 ]
 
 

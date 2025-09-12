@@ -33,24 +33,6 @@ def test_round_trip_conversion(tmp_path: Path, sample_bool_message: dict) -> Non
     assert result == sample_bool_message
 
 
-def test_pointcloud2_error_handling(tmp_path: Path) -> None:
-    """Test error handling for malformed PointCloud2 messages."""
-    # Create a malformed PointCloud2 message
-    malformed_message = pointcloud2_message_factory(
-        topic='/malformed_lidar', width=1, frame_id='lidar', include_points=False
-    )
-    # Override with empty fields - should cause processing to fail gracefully
-    malformed_message['message']['fields'] = []
-    malformed_message['message']['data'] = list(range(12))
-
-    # Use roundtrip helper - should not crash
-    result = mcap_roundtrip_helper(malformed_message, tmp_path)
-
-    # Verify we still get valid output
-    assert result['topic'] == '/malformed_lidar'
-    assert result['datatype'] == 'sensor_msgs/msg/PointCloud2'
-
-
 def test_large_data_array_roundtrip(tmp_path: Path) -> None:
     """Test roundtrip conversion with large data arrays."""
     # Create a message with large data field

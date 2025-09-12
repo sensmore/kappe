@@ -95,6 +95,27 @@ def test_empty_mcap_file(tmp_path: Path):
         mcap_to_json(empty_mcap, output_buffer)
 
 
+def test_valid_empty_mcap_file(tmp_path: Path):
+    """Test handling of valid MCAP file with no messages (header and footer only)."""
+    # Create an empty JSONL file
+    empty_jsonl = tmp_path / 'empty.jsonl'
+    empty_jsonl.write_text('')
+
+    # Convert to MCAP - this creates a valid MCAP with header and footer but no messages
+    temp_mcap = tmp_path / 'valid_empty.mcap'
+    json_to_mcap(temp_mcap, empty_jsonl)
+
+    output_buffer = StringIO()
+
+    # This should succeed (no exceptions) for a valid empty MCAP
+    mcap_to_json(temp_mcap, output_buffer)
+
+    # Verify the output is empty (no messages)
+    output_buffer.seek(0)
+    lines = output_buffer.readlines()
+    assert len(lines) == 0
+
+
 @pytest.mark.parametrize(('limit', 'expected_count'), [(1, 1), (0, 3)])
 def test_message_limit(tmp_path: Path, limit: int, expected_count: int) -> None:
     """Test message limit functionality."""

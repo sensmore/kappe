@@ -1,6 +1,5 @@
 import logging
 import time
-import warnings
 from collections.abc import Generator, Iterable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -260,11 +259,7 @@ class Converter:
             end_time: End time in seconds. If None, read until the end.
         """
         if self.mcap_header.profile not in (Profile.ROS1, Profile.ROS2):
-            warnings.warn(
-                f'Unsupported profile: {self.mcap_header.profile}, trying to read as ROS2',
-                RuntimeWarning,
-                stacklevel=1,
-            )
+            raise ValueError(f'Unsupported profile: {self.mcap_header.profile}')
 
         with self.input_path.open('rb') as f:
             try:
@@ -297,7 +292,6 @@ class Converter:
 
         if not self.tf_inserted:
             self.tf_inserted = True
-            # TODO: use the time of the current message
             insert_tf = tf_static_insert(self.config.tf_static, message.log_time)
             if insert_tf is not None:
                 self.writer.write_message(
@@ -445,7 +439,7 @@ class Converter:
         # Handle keep_all_static_tf even for malformed MCAPs
         if self.config.keep_all_static_tf:
             # Use calculated start_time_sec if available, otherwise use config or default
-            tf_start_time = start_time_sec or self.config.time_start or 1.0
+            tf_start_time = start_time_sec or self.config.time_start or 0.0
             self.collect_tf_static(tf_start_time)
 
         filtered_channels = self.get_selected_channels()

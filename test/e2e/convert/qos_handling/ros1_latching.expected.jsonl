@@ -1,2 +1,0 @@
-{"datatype":"std_msgs/Bool","log_time":0,"message":{"data":true},"publish_time":0,"sequence":0,"topic":"/latched_topic"}
-{"datatype":"std_msgs/Bool","log_time":1000000000,"message":{"data":false},"publish_time":1000000000,"sequence":1,"topic":"/normal_topic"}

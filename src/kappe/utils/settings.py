@@ -32,7 +32,7 @@ class SettingRotation(BaseModel, frozen=True):
     """
     Rotation settings.
 
-    If booth quaternion and euler_deg are set, quaternion is used.
+    If both quaternion and euler_deg are set, quaternion is used.
 
     :ivar quaternion: Quaternion to apply.
     :ivar euler_deg: Euler angles to apply.

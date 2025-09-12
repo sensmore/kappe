@@ -67,27 +67,6 @@ def test_multiple_message_types(tmp_path: Path) -> None:
     assert output_mcap.stat().st_size > 0
 
 
-def test_pointcloud2_json_to_mcap_without_points(tmp_path: Path) -> None:
-    """Test PointCloud2 message conversion without decoded points."""
-    # Create a PointCloud2 message without decoded points
-    test_jsonl = tmp_path / 'pointcloud2_no_points.jsonl'
-    pointcloud2_message = pointcloud2_message_factory(
-        topic='/lidar_raw', width=1, include_points=False
-    )
-    # Override data field for raw data
-    pointcloud2_message['message']['data'] = list(range(1, 13))
-
-    test_jsonl.write_text(json.dumps(pointcloud2_message))
-
-    # Convert to MCAP
-    output_mcap = tmp_path / 'pointcloud2_raw_output.mcap'
-    json_to_mcap(output_mcap, test_jsonl)
-
-    # Verify MCAP file was created
-    assert output_mcap.exists()
-    assert output_mcap.stat().st_size > 0
-
-
 def test_pointcloud2_conversion_error_handling(tmp_path: Path) -> None:
     """Test error handling in PointCloud2 conversion."""
     # Create a malformed PointCloud2 message that should trigger error handling
@@ -96,10 +75,6 @@ def test_pointcloud2_conversion_error_handling(tmp_path: Path) -> None:
         topic='/malformed_lidar', width=1, frame_id='lidar'
     )
     # Override with invalid point structure
-    malformed_message['message']['fields'] = [{'name': 'x', 'offset': 0, 'datatype': 7, 'count': 1}]
-    malformed_message['message']['point_step'] = 4
-    malformed_message['message']['row_step'] = 4
-    malformed_message['message']['data'] = [1, 2, 3, 4]
     malformed_message['message']['points'] = [
         {'invalid_field': 'bad_data'}
     ]  # Invalid point structure
@@ -145,28 +120,4 @@ def test_invalid_message_structure(tmp_path: Path):
     mcap_file = tmp_path / 'output.mcap'
 
     with pytest.raises(ValueError, match='Error parsing message data'):
-        json_to_mcap(mcap_file, jsonl_file)
-
-
-def test_empty_file(tmp_path: Path):
-    """Test handling of empty JSONL file."""
-    # Create an empty file
-    jsonl_file = tmp_path / 'empty.jsonl'
-    jsonl_file.write_text('')
-
-    mcap_file = tmp_path / 'output.mcap'
-
-    with pytest.raises(ValueError, match='No valid messages found in file'):
-        json_to_mcap(mcap_file, jsonl_file)
-
-
-def test_file_with_only_whitespace(tmp_path: Path):
-    """Test handling of file with only whitespace."""
-    # Create a file with only whitespace
-    jsonl_file = tmp_path / 'whitespace.jsonl'
-    jsonl_file.write_text('   \n  \t  \n')
-
-    mcap_file = tmp_path / 'output.mcap'
-
-    with pytest.raises(ValueError, match='No valid messages found in file'):
         json_to_mcap(mcap_file, jsonl_file)

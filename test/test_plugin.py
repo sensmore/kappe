@@ -112,8 +112,13 @@ class Converter(ConverterPlugin):
     plugin_class = load_plugin(tmp_path, 'test_plugin')
     plugin = plugin_class()
 
+    # Test all plugin outputs for 100% coverage
     assert plugin.output_schema == 'default_schema'
     assert plugin.convert({'test': 'data'}) == {'default_converted': {'test': 'data'}}
+    assert isinstance(plugin.logger, logging.Logger)
+    assert plugin.logger.name == 'Converter'
+    assert isinstance(plugin, ConverterPlugin)
+    assert plugin_class.__name__ == 'Converter'
 
 
 def test_load_plugin_file_not_found(tmp_path: Path):
