@@ -115,9 +115,12 @@ def _read_inner(
     topics: Iterable[str] | None = None,
     start_time: float | None = None,
     end_time: float | None = None,
+    *,
+    schemas: dict[int, Schema] | None = None,
+    channels: dict[int, Channel] | None = None,
 ) -> Generator[tuple[Schema | None, Channel, Message], None, None]:
-    _schemas: dict[int, Schema] = {}
-    _channels: dict[int, Channel] = {}
+    _schemas: dict[int, Schema] = schemas if schemas is not None else {}
+    _channels: dict[int, Channel] = channels if channels is not None else {}
 
     for record in reader:
         if isinstance(record, Schema):
@@ -127,8 +130,6 @@ def _read_inner(
                 raise McapError(f'no schema record found with id {record.schema_id}')
             _channels[record.id] = record
         if isinstance(record, Message):
-            if record.channel_id not in _channels:
-                raise McapError(f'no channel record found with id {record.channel_id}')
             channel = _channels[record.channel_id]
             if (
                 (topics is not None and channel.topic not in topics)
@@ -136,6 +137,8 @@ def _read_inner(
                 or (end_time is not None and record.log_time >= end_time)
             ):
                 continue
+            if record.channel_id not in _channels:
+                raise McapError(f'no channel record found with id {record.channel_id}')
             schema = None if channel.schema_id == 0 else _schemas[channel.schema_id]
             yield (schema, channel, record)
 
@@ -162,7 +165,9 @@ def _read_message_seeking(
             chunk = Chunk.read(ReadDataStream(stream))
             yield from breakup_chunk(chunk)
 
-    yield from _read_inner(reader(), topics, start_time, end_time)
+    yield from _read_inner(
+        reader(), topics, start_time, end_time, schemas=summary.schemas, channels=summary.channels
+    )
 
 
 def _read_message_non_seeking(
