@@ -110,7 +110,7 @@ def _chunks_matching_topics(
     ]
 
 
-def _read_inner(
+def _read_inner(  # noqa: PLR0913
     reader: Iterator[McapRecord],
     topics: Iterable[str] | None = None,
     start_time: float | None = None,
