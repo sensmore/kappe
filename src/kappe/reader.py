@@ -130,6 +130,8 @@ def _read_inner(  # noqa: PLR0913
                 raise McapError(f'no schema record found with id {record.schema_id}')
             _channels[record.id] = record
         if isinstance(record, Message):
+            if record.channel_id not in _channels:
+                raise McapError(f'no channel record found with id {record.channel_id}')
             channel = _channels[record.channel_id]
             if (
                 (topics is not None and channel.topic not in topics)
@@ -137,8 +139,6 @@ def _read_inner(  # noqa: PLR0913
                 or (end_time is not None and record.log_time >= end_time)
             ):
                 continue
-            if record.channel_id not in _channels:
-                raise McapError(f'no channel record found with id {record.channel_id}')
             schema = None if channel.schema_id == 0 else _schemas[channel.schema_id]
             yield (schema, channel, record)
 
