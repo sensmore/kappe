@@ -110,14 +110,17 @@ def _chunks_matching_topics(
     ]
 
 
-def _read_inner(
+def _read_inner(  # noqa: PLR0913
     reader: Iterator[McapRecord],
     topics: Iterable[str] | None = None,
     start_time: float | None = None,
     end_time: float | None = None,
+    *,
+    schemas: dict[int, Schema] | None = None,
+    channels: dict[int, Channel] | None = None,
 ) -> Generator[tuple[Schema | None, Channel, Message], None, None]:
-    _schemas: dict[int, Schema] = {}
-    _channels: dict[int, Channel] = {}
+    _schemas: dict[int, Schema] = schemas if schemas is not None else {}
+    _channels: dict[int, Channel] = channels if channels is not None else {}
 
     for record in reader:
         if isinstance(record, Schema):
@@ -162,7 +165,9 @@ def _read_message_seeking(
             chunk = Chunk.read(ReadDataStream(stream))
             yield from breakup_chunk(chunk)
 
-    yield from _read_inner(reader(), topics, start_time, end_time)
+    yield from _read_inner(
+        reader(), topics, start_time, end_time, schemas=summary.schemas, channels=summary.channels
+    )
 
 
 def _read_message_non_seeking(
