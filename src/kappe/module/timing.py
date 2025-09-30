@@ -8,7 +8,7 @@ from pydantic import BaseModel
 try:
     from mcap_ros1._vendor.genpy.rostime import Duration as ROS1Duration
     from mcap_ros1._vendor.genpy.rostime import Time as ROS1Time
-except ImportError:
+except ImportError:  # pragma: no cover
     ROS1Duration = None  # type: ignore[assignment]
     ROS1Time = None  # type: ignore[assignment]
 from kappe.writer import WrappedDecodedMessage
@@ -97,7 +97,7 @@ def fix_ros1_time(msg: Any) -> None:
     secs -> sec
     nsecs -> nanosec
     """
-    if ROS1Time is None or ROS1Duration is None:
+    if ROS1Time is None or ROS1Duration is None:  # pragma: no cover
         raise RuntimeError('ros1 support not available, please install kappe with the "ros1" extra')
 
     if not hasattr(msg, '__slots__'):

@@ -13,7 +13,7 @@ from mcap.writer import Writer as McapWriter
 # TODO: vendor these
 try:
     from mcap_ros1._vendor.genpy import dynamic as ros1_dynamic
-except ImportError:
+except ImportError:  # pragma: no cover
     ros1_dynamic = None  # type: ignore[assignment]
 from mcap_ros2._dynamic import (
     DecoderFunction,

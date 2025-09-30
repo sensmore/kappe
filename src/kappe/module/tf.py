@@ -146,7 +146,8 @@ def tf_remove(cfg: SettingTF, msg: WrappedDecodedMessage) -> bool:
             ros_msg.transforms = [
                 tf for tf in ros_msg.transforms if tf.child_frame_id not in cfg.remove
             ]
-        else:
+        else:  # pragma: no cover
+            # Defensive case already prevented by pydantic
             raise ValueError(f'Invalid value for remove: {cfg.remove}')
         return len(ros_msg.transforms) > 0
     return True
