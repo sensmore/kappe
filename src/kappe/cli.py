@@ -77,8 +77,8 @@ def convert_process(  # noqa: PLR0912
         for idx, inp in enumerate(input_path):
             tasks.append((inp, output_path / inp.name, config, idx))
     elif input_path.is_file():
-        # If output_path has a file extension, treat it as a file path
-        if output_path.suffix:
+        # If output_path ends with .mcap, treat it as a file path
+        if output_path.name.endswith('.mcap'):
             tasks.append((input_path, output_path, config, 0))
         else:
             tasks.append((input_path, output_path / input_path.name, config, 0))
