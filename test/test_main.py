@@ -31,7 +31,7 @@ def test_main_module_execution():
 def test_main_module_import():
     """Test that the main module can be imported."""
     # This should not raise an ImportError
-    from kappe import __main__  # noqa: F401, PLC0415
+    from kappe import __main__  # noqa: F401
 
 
 def test_single_file_output():
