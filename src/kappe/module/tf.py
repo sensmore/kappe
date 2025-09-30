@@ -1,8 +1,8 @@
 from typing import Any, Literal
 
 from pydantic import BaseModel
-from scipy.spatial.transform import Rotation
 
+from kappe.utils.rotation import quaternion_multiply
 from kappe.utils.settings import SettingRotation, SettingTranslation
 from kappe.writer import WrappedDecodedMessage
 
@@ -119,20 +119,17 @@ def tf_apply_offset(cfg: SettingTF, msg: WrappedDecodedMessage) -> None:
             # Apply rotation offset
             offset_quat = offset_cfg.rotation.quaternion
             # Get current rotation as quaternion (x, y, z, w)
-            current_quat = [
+            current_quat = (
                 transform.transform.rotation.x,
                 transform.transform.rotation.y,
                 transform.transform.rotation.z,
                 transform.transform.rotation.w,
-            ]
+            )
 
-            # Use scipy to multiply quaternions
-            current_rot = Rotation.from_quat(current_quat)
-            offset_rot = Rotation.from_quat(offset_quat)
-            result_rot = current_rot * offset_rot
+            # Multiply quaternions
+            result_quat = quaternion_multiply(current_quat, offset_quat)
 
-            # Get the result quaternion and update the transform
-            result_quat = result_rot.as_quat()
+            # Update the transform
             transform.transform.rotation.x = result_quat[0]
             transform.transform.rotation.y = result_quat[1]
             transform.transform.rotation.z = result_quat[2]

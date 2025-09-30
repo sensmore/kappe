@@ -3,10 +3,14 @@ from types import SimpleNamespace
 from typing import Any
 
 from mcap.records import Message
-from mcap_ros1._vendor.genpy.rostime import Duration as ROS1Duration
-from mcap_ros1._vendor.genpy.rostime import Time as ROS1Time
 from pydantic import BaseModel
 
+try:
+    from mcap_ros1._vendor.genpy.rostime import Duration as ROS1Duration
+    from mcap_ros1._vendor.genpy.rostime import Time as ROS1Time
+except ImportError:
+    ROS1Duration = None  # type: ignore[assignment]
+    ROS1Time = None  # type: ignore[assignment]
 from kappe.writer import WrappedDecodedMessage
 
 logger = logging.getLogger(__name__)
@@ -93,6 +97,9 @@ def fix_ros1_time(msg: Any) -> None:
     secs -> sec
     nsecs -> nanosec
     """
+    if ROS1Time is None or ROS1Duration is None:
+        raise RuntimeError('ros1 support not available, please install kappe with the "ros1" extra')
+
     if not hasattr(msg, '__slots__'):
         return
 
