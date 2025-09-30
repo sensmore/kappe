@@ -102,10 +102,11 @@ def fix_ros1_time(msg: Any) -> None:
         if isinstance(attr, list):
             for i in attr:
                 fix_ros1_time(i)
-
         elif isinstance(attr, ROS1Time | ROS1Duration):
             time = TimeMsg()
             time.sec = attr.secs
             time.nanosec = attr.nsecs
 
             setattr(msg, slot, time)
+        else:
+            fix_ros1_time(attr)
