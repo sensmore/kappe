@@ -1,3 +1,4 @@
+import argparse
 import json
 import sys
 from collections.abc import Generator
@@ -112,8 +113,6 @@ def mcap_to_json(
 
 
 def main() -> None:
-    import argparse
-
     parser = argparse.ArgumentParser(description='Convert MCAP file to JSON format.')
     parser.add_argument('file', type=Path, help='Path to the MCAP file.')
     parser.add_argument(

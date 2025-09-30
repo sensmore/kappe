@@ -1,3 +1,4 @@
+import argparse
 import io
 import json
 import logging
@@ -133,8 +134,6 @@ def json_to_mcap(
 
 
 def main() -> None:
-    import argparse
-
     parser = argparse.ArgumentParser(description='Convert JSON to MCAP.')
     parser.add_argument('file', type=Path, help='Path to the input JSONL file.')
     parser.add_argument('-o', '--output', type=Path, required=True, help='Path to the MCAP file.')
