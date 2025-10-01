@@ -1,5 +1,6 @@
 import logging
 from collections import deque
+from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 from typing import IO
@@ -75,7 +76,8 @@ def _get_cache_dir(distro: ROS2Distro) -> Path:
     )
 
 
-def _rglob_first(folder: list[Path], pattern: str) -> Path | None:
+@lru_cache(maxsize=512)
+def _rglob_first(folder: tuple[Path | None, ...], pattern: str) -> Path | None:
     for f in folder:
         if f is None or not f.exists():
             continue
@@ -85,7 +87,7 @@ def _rglob_first(folder: list[Path], pattern: str) -> Path | None:
     return None
 
 
-def _get_msg_def_disk(msg_type: str, folder: list[Path]) -> tuple[str, list[str]] | None:
+def _get_msg_def_disk(msg_type: str, folder: tuple[Path, ...]) -> tuple[str, list[str]] | None:
     pkg_name = msg_type.split('/')[0]
     msg_name = msg_type.split('/')[-1]
 
@@ -121,7 +123,7 @@ def _get_msg_def(
 ) -> tuple[str, list[str]] | None:
     cache_dir = _get_cache_dir(distro)
     _update_cache(cache_dir, distro)
-    return _get_msg_def_disk(msg_type, [folder, cache_dir] if folder else [cache_dir])
+    return _get_msg_def_disk(msg_type, (folder, cache_dir) if folder else (cache_dir,))
 
 
 def get_message_definition(
