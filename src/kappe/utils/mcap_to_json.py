@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import IO, Any
 
 from mcap.reader import make_reader
+from mcap_protobuf.decoder import DecoderFactory as ProtobufDecoderFactory
 from mcap_ros2.decoder import DecoderFactory as Ros2DecoderFactory
 from pointcloud2 import read_points
 
@@ -68,7 +69,9 @@ def _iter_jsonl(
 
     try:
         with file_path.open('rb') as f:
-            reader = make_reader(f, decoder_factories=[Ros2DecoderFactory()])
+            reader = make_reader(
+                f, decoder_factories=[Ros2DecoderFactory(), ProtobufDecoderFactory()]
+            )
             for i, record in enumerate(
                 reader.iter_decoded_messages(
                     topics=topics,

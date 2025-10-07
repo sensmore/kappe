@@ -7,6 +7,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from google.protobuf.descriptor import Descriptor
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +24,22 @@ class ConverterPlugin(ABC):
     @abstractmethod
     def convert(self, ros_msg: Any) -> Any:
         pass
+
+    def convert_with_times(self, ros_msg: Any, log_time_ns: int, publish_time_ns: int) -> Any:  # noqa: ARG002
+        # by default return the convert result
+        # implement this instead of convert if you need to have access to mcap times
+        return self.convert(ros_msg)
+
+
+class ProtobufConverterPlugin(ConverterPlugin):
+    @property
+    @abstractmethod
+    def descriptor(self) -> Descriptor:
+        pass
+
+    @property
+    def output_schema(self) -> str:
+        return self.descriptor.full_name
 
 
 def module_get_plugins(module: ModuleType) -> list[str]:

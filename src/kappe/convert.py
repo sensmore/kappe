@@ -20,7 +20,7 @@ from kappe.module.tf import (
     tf_static_insert,
 )
 from kappe.module.timing import fix_ros1_time, time_offset
-from kappe.plugin import ConverterPlugin, load_plugin
+from kappe.plugin import ConverterPlugin, ProtobufConverterPlugin, load_plugin
 from kappe.reader import get_header, get_summary, read_message
 from kappe.settings import Settings
 from kappe.utils.msg_def import get_message_definition
@@ -100,6 +100,11 @@ class Converter:
                 out_schema = conv.output_schema
                 if out_schema in self.schema_list:
                     continue
+                if isinstance(conv, ProtobufConverterPlugin):
+                    self.schema_list[out_schema] = self.writer.register_protobuf(
+                        out_schema, conv.descriptor
+                    )
+                    continue
 
                 new_data = get_message_definition(
                     out_schema, self.config.ros_distro, self.config.msg_folder
@@ -127,6 +132,12 @@ class Converter:
             return
 
         self.schema_original[schema.id] = schema
+
+        if schema.encoding in [SchemaEncoding.Protobuf, SchemaEncoding.JSONSchema]:
+            if schema.name in self.schema_list:
+                return
+            self.schema_list[schema.name] = self.writer.register_schema(schema)
+            return
 
         if schema.encoding not in [SchemaEncoding.ROS1, SchemaEncoding.ROS2]:
             logger.warning(
@@ -215,7 +226,7 @@ class Converter:
 
             channel_id = self.writer._writer.register_channel(  # noqa: SLF001
                 topic=topic,
-                message_encoding='cdr',
+                message_encoding=channel.message_encoding,
                 schema_id=schema_id,
                 metadata=metadata,
             )
@@ -258,8 +269,8 @@ class Converter:
             start_time: Start time in seconds. If None, start at the beginning.
             end_time: End time in seconds. If None, read until the end.
         """
-        if self.mcap_header.profile not in (Profile.ROS1, Profile.ROS2):
-            raise ValueError(f'Unsupported profile: {self.mcap_header.profile}')
+        # if self.mcap_header.profile not in (Profile.ROS1, Profile.ROS2):
+        #     raise ValueError(f'Unsupported profile: {self.mcap_header.profile}')
 
         with self.input_path.open('rb') as f:
             try:
@@ -313,7 +324,9 @@ class Converter:
         # handling of converters
         conv_list = self.plugin_conv.get(topic, [])
         for conv, output_topic in conv_list:
-            if conv_msg := conv.convert(msg.decoded_message):
+            if conv_msg := conv.convert_with_times(
+                msg.decoded_message, msg.message.log_time, msg.message.publish_time
+            ):
                 # TODO: pass this to process_message?
                 self.writer.write_message(
                     topic=output_topic,
