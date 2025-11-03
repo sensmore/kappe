@@ -1,5 +1,6 @@
 from pydantic import BaseModel, model_validator
-from scipy.spatial.transform import Rotation
+
+from kappe.utils.rotation import euler_to_quaternion
 
 
 class AxisBound(BaseModel, frozen=True):
@@ -60,9 +61,9 @@ class SettingRotation(BaseModel, frozen=True):
     @model_validator(mode='after')
     def _derive_quaternion(self) -> 'SettingRotation':
         if self.euler_deg is not None:
-            quat = Rotation.from_euler('XYZ', self.euler_deg, degrees=True).as_quat()
+            quat = euler_to_quaternion(self.euler_deg, degrees=True)
             # model is frozen - bypass immutability for derived field
-            object.__setattr__(self, 'quaternion', tuple(float(v) for v in quat))
+            object.__setattr__(self, 'quaternion', quat)
         return self
 
 

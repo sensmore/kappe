@@ -1,6 +1,5 @@
 import logging
 from io import BytesIO
-from pathlib import Path
 from typing import Any
 
 from kappe.plugin import ConverterPlugin
@@ -9,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from PIL import Image
-except ImportError as err:
+except ImportError as err:  # pragma: no cover
     logger.warning('PIL not installed. Install with "pip install pillow"')
     raise ImportError from err
 
@@ -80,15 +79,3 @@ class ReCompress(ConverterPlugin):
     @property
     def output_schema(self) -> str:
         return 'sensor_msgs/msg/CompressedImage'
-
-
-class SaveCompress(ConverterPlugin):
-    def __init__(self, *, quality: int = 10) -> None:
-        self.quality = quality
-        self.counter = 0
-
-    def convert(self, ros_msg: Any) -> Any:
-        stream = BytesIO(ros_msg.data)
-        img = Image.open(stream)
-        with Path(f'{self.counter:08}.jpeg').open('wb') as f:
-            img.save(f, format='jpeg', quality=self.quality)
