@@ -19,6 +19,7 @@ dependencies = [
     "mcap>=1.0.2",
     "mcap-ros1-support>=0.6.0",
     "mcap-ros2-support>=0.3.0",
+    "mcap-protobuf-support>=0.5.3",
     "numpy",
     "pydantic>=2.4.2",
     "tqdm",

@@ -1,14 +1,19 @@
+import json
 import time
 from dataclasses import dataclass
 from io import BufferedWriter
 from typing import IO, Any
 
 import mcap
+from google.protobuf.descriptor import Descriptor, FileDescriptor
+from google.protobuf.descriptor_pb2 import FileDescriptorSet
+from google.protobuf.message import Message as ProtobufMessage
 from mcap.exceptions import McapError
 from mcap.records import Channel, Message, Schema
-from mcap.well_known import SchemaEncoding
+from mcap.well_known import MessageEncoding, SchemaEncoding
 from mcap.writer import CompressionType, IndexType
 from mcap.writer import Writer as McapWriter
+from mcap_protobuf.decoder import DecoderFactory as ProtobufDecoderFactory
 
 # TODO: vendor these
 from mcap_ros1._vendor.genpy import dynamic as ros1_dynamic
@@ -32,6 +37,22 @@ class ROS2DecodeError(McapError):
 
 class ROS2EncodeError(McapError):
     """Raised if a ROS2 message cannot be encoded."""
+
+
+class ProtobufDecodeError(McapError):
+    """Raised if an MCAP message record cannot be decoded as a Protobuf message."""
+
+
+class ProtobufEncodeError(McapError):
+    """Raised if an MCAP message record cannot be encoded as a Protobuf message."""
+
+
+class JsonDecodeError(McapError):
+    """Raised if an MCAP message record cannot be decoded as a Json message."""
+
+
+class JsonEncodeError(McapError):
+    """Raised if an MCAP message record cannot be encoded as a Json message."""
 
 
 def _get_decoder_ros1(schema: Schema) -> DecoderFunction:
@@ -63,6 +84,37 @@ def _get_decoder_ros2(schema: Schema) -> DecoderFunction:
     return type_dict[schema.name]
 
 
+_protobuf_decoder_factory = ProtobufDecoderFactory()
+
+
+def build_file_descriptor_set(descriptor: Descriptor) -> FileDescriptorSet:
+    file_descriptor_set = FileDescriptorSet()
+    seen_dependencies: set[str] = set()
+
+    def append_file_descriptor(file_descriptor: FileDescriptor) -> None:
+        for dep in file_descriptor.dependencies:
+            if dep.name not in seen_dependencies:
+                seen_dependencies.add(dep.name)
+                append_file_descriptor(dep)
+        file_descriptor.CopyToProto(file_descriptor_set.file.add())
+
+    append_file_descriptor(descriptor.file)
+    return file_descriptor_set
+
+
+def _get_decoder_protobuf(schema: Schema) -> DecoderFunction:
+    decoder = _protobuf_decoder_factory.decoder_for(SchemaEncoding.Protobuf, schema)
+    assert decoder is not None
+    return decoder
+
+
+# def _get_decoder_json(schema: Schema) -> DecoderFunction:
+#     def decoder(data: bytes) -> dict:
+#         return json.loads(data)
+#
+#     return decoder
+
+
 _decoder_cache: dict[int, DecoderFunction] = {}
 
 
@@ -76,6 +128,10 @@ def get_decoder(schema: Schema) -> DecoderFunction:
         decoder = _get_decoder_ros2(schema)
     elif schema.encoding == SchemaEncoding.ROS1:
         decoder = _get_decoder_ros1(schema)
+    elif schema.encoding == SchemaEncoding.Protobuf:
+        decoder = _get_decoder_protobuf(schema)
+    # elif schema.encoding == SchemaEncoding.JSONSchema:
+    #     decoder = _get_decoder_json(schema)
     else:
         raise ROS2DecodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
     _decoder_cache[cache_key] = decoder
@@ -86,19 +142,29 @@ _encoder_cache: dict[int, EncoderFunction] = {}
 
 
 def get_encoder(schema: Schema) -> EncoderFunction:
-    if schema.encoding != SchemaEncoding.ROS2:
-        raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
-
     cache_key = hash((schema.id, schema.name, schema.data))
     encoder = _encoder_cache.get(cache_key)
-    if encoder is None:
-        type_dict = serialize_dynamic(schema.name, schema.data.decode())
-        # Check if schema.name is in type_dict
-        if schema.name not in type_dict:
-            raise ROS2EncodeError(f'schema parsing failed for "{schema.name}"')
-        encoder = type_dict[schema.name]
-        _encoder_cache[cache_key] = encoder
 
+    if encoder:
+        return encoder
+
+    match schema.encoding:
+        case SchemaEncoding.ROS2:
+            type_dict = serialize_dynamic(schema.name, schema.data.decode())
+            # Check if schema.name is in type_dict
+            if schema.name not in type_dict:
+                raise ROS2EncodeError(f'schema parsing failed for "{schema.name}"')
+            encoder = type_dict[schema.name]
+        case SchemaEncoding.Protobuf:
+
+            def _encoder(decoded_message: ProtobufMessage) -> bytes:
+                return decoded_message.SerializeToString()
+
+            encoder = _encoder
+        case _:
+            raise ROS2EncodeError(f'can\'t parse schema with encoding "{schema.encoding}"')
+
+    _encoder_cache[cache_key] = encoder
     return encoder
 
 
@@ -175,6 +241,28 @@ class WrappedWriter:
         schema_id = self._writer.register_schema(datatype, SchemaEncoding.ROS2, msgdef_data)
         return Schema(id=schema_id, name=datatype, encoding=SchemaEncoding.ROS2, data=msgdef_data)
 
+    def register_schema(self, schema: Schema) -> Schema:
+        schema_id = self._writer.register_schema(
+            name=schema.name, encoding=schema.encoding, data=schema.data
+        )
+        return Schema(id=schema_id, name=schema.name, encoding=schema.encoding, data=schema.data)
+
+    def register_protobuf(self, name: str, descriptor: Descriptor) -> Schema:
+        """Writer a Schema record for a Protobuf message definition."""
+        file_descriptor_set = build_file_descriptor_set(descriptor=descriptor)
+
+        schema_id = self._writer.register_schema(
+            name=descriptor.full_name,
+            encoding='protobuf',
+            data=file_descriptor_set.SerializeToString(),
+        )
+        return Schema(
+            id=schema_id,
+            name=name,
+            encoding=SchemaEncoding.Protobuf,
+            data=file_descriptor_set.SerializeToString(),
+        )
+
     def write_message(  # noqa: PLR0913
         self,
         topic: str,
@@ -203,9 +291,12 @@ class WrappedWriter:
             data = encoder(message)
 
         if topic not in self._channel_ids:
+            message_encoding = MessageEncoding.CDR
+            if schema.encoding == SchemaEncoding.Protobuf:
+                message_encoding = MessageEncoding.Protobuf
             channel_id = self._writer.register_channel(
                 topic=topic,
-                message_encoding='cdr',
+                message_encoding=message_encoding,
                 schema_id=schema.id,
             )
             self._channel_ids[topic] = channel_id
