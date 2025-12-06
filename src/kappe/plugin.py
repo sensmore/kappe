@@ -16,11 +16,11 @@ class ConverterPlugin(ABC):
 
     @property
     @abstractmethod
-    def output_schema(self) -> str:
+    def output_schema(self) -> str:  # pragma: no cover
         pass
 
     @abstractmethod
-    def convert(self, ros_msg: Any) -> Any:
+    def convert(self, ros_msg: Any) -> Any:  # pragma: no cover
         pass
 
 
@@ -43,12 +43,11 @@ def load_plugin(base_folder: Path | None, plugin_name: str) -> Callable[..., Con
     if '.' in plugin_name:
         pkg_name, class_name = plugin_name.split('.')
 
-    plugin_folders: list[Path | None] = [Path(__file__).parent / 'plugins', base_folder]
+    plugin_folders: list[Path] = [Path(__file__).parent / 'plugins']
+    if base_folder:
+        plugin_folders.append(base_folder)
 
     for path in plugin_folders:
-        if path is None:
-            continue
-
         plugin_file = path / f'{pkg_name}.py'
         if not plugin_file.exists():
             logger.debug('Plugin %s does not exist in %s', plugin_name, path)

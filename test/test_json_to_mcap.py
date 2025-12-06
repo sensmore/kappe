@@ -46,7 +46,7 @@ def test_invalid_message_definition(tmp_path: Path):
 
     output_mcap = tmp_path / 'output.mcap'
 
-    with pytest.raises(ValueError, match='Message definition for .* not found'):
+    with pytest.raises(ValueError, match=r'Message definition for .* not found'):
         json_to_mcap(output_mcap, test_jsonl)
 
 

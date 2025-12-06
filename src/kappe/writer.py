@@ -11,7 +11,10 @@ from mcap.writer import CompressionType, IndexType
 from mcap.writer import Writer as McapWriter
 
 # TODO: vendor these
-from mcap_ros1._vendor.genpy import dynamic as ros1_dynamic
+try:
+    from mcap_ros1._vendor.genpy import dynamic as ros1_dynamic
+except ImportError:  # pragma: no cover
+    ros1_dynamic = None  # type: ignore[assignment]
 from mcap_ros2._dynamic import (
     DecoderFunction,
     EncoderFunction,
@@ -37,6 +40,11 @@ class ROS2EncodeError(McapError):
 def _get_decoder_ros1(schema: Schema) -> DecoderFunction:
     if schema.encoding != SchemaEncoding.ROS1:
         raise ROS1DecodeError(f'can\'t parse schema with encoding "{schema}"')
+
+    if ros1_dynamic is None:
+        raise ROS1DecodeError(
+            'ros1 support not available, please install kappe with the "ros1" extra'
+        )
 
     type_dict: dict[str, type[Any]] = ros1_dynamic.generate_dynamic(
         schema.name, schema.data.decode()
