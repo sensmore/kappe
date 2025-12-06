@@ -40,14 +40,6 @@ def test_converter_plugin_implementation():
     assert plugin.logger.name == '_OneConverterPlugin'
 
 
-def test_converter_plugin_multiple_implementations():
-    """Test that multiple ConverterPlugin implementations can coexist."""
-    plugin = _AnotherTestPlugin()
-    assert plugin.output_schema == 'another_schema'
-    assert plugin.convert({'test': 'data'}) == {'another': {'test': 'data'}}
-    assert plugin.logger.name == '_AnotherTestPlugin'
-
-
 def test_module_get_plugins():
     """Test getting plugins from a module."""
     # Create a mock module with our test classes

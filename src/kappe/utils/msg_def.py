@@ -76,7 +76,6 @@ def _get_cache_dir(distro: ROS2Distro) -> Path:
     )
 
 
-@lru_cache(maxsize=512)
 def _rglob_first(folder: tuple[Path | None, ...], pattern: str) -> Path | None:
     for f in folder:
         if f is None or not f.exists():
@@ -126,6 +125,7 @@ def _get_msg_def(
     return _get_msg_def_disk(msg_type, (folder, cache_dir) if folder else (cache_dir,))
 
 
+@lru_cache(maxsize=128)
 def get_message_definition(
     msg_type: str, distro: ROS2Distro, folder: Path | None = None
 ) -> str | None:

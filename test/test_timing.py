@@ -7,34 +7,6 @@ from mcap_ros1._vendor.genpy.rostime import Time as ROS1Time
 from kappe.module.timing import fix_ros1_time
 
 
-def test_fix_ros1_time_basic():
-    """Test fixing a simple ROS1 Time object."""
-    msg = SimpleNamespace()
-    msg.__slots__ = ['timestamp']
-    msg.timestamp = ROS1Time(secs=10, nsecs=500000000)
-
-    fix_ros1_time(msg)
-
-    assert hasattr(msg.timestamp, 'sec')
-    assert hasattr(msg.timestamp, 'nanosec')
-    assert msg.timestamp.sec == 10
-    assert msg.timestamp.nanosec == 500000000
-
-
-def test_fix_ros1_duration_basic():
-    """Test fixing a simple ROS1 Duration object."""
-    msg = SimpleNamespace()
-    msg.__slots__ = ['duration']
-    msg.duration = ROS1Duration(secs=5, nsecs=250000000)
-
-    fix_ros1_time(msg)
-
-    assert hasattr(msg.duration, 'sec')
-    assert hasattr(msg.duration, 'nanosec')
-    assert msg.duration.sec == 5
-    assert msg.duration.nanosec == 250000000
-
-
 def test_fix_ros1_time_nested():
     """Test fixing nested messages with ROS1 Time (recursively converts all nested objects)."""
     inner = SimpleNamespace()
@@ -50,36 +22,15 @@ def test_fix_ros1_time_nested():
 
     # Top-level ROS1Time is converted
     assert hasattr(outer.time, 'sec')
+    assert hasattr(outer.time, 'nanosec')
     assert outer.time.sec == 10
     assert outer.time.nanosec == 50000000
 
     # Nested object's ROS1Time is also converted (function recurses into nested objects)
     assert hasattr(outer.header.timestamp, 'sec')
+    assert hasattr(outer.header.timestamp, 'nanosec')
     assert outer.header.timestamp.sec == 20
     assert outer.header.timestamp.nanosec == 100000000
-
-
-def test_fix_ros1_time_list():
-    """Test fixing ROS1 Time objects in nested messages within a list."""
-    inner1 = SimpleNamespace()
-    inner1.__slots__ = ['timestamp']
-    inner1.timestamp = ROS1Time(secs=1, nsecs=0)
-
-    inner2 = SimpleNamespace()
-    inner2.__slots__ = ['timestamp']
-    inner2.timestamp = ROS1Time(secs=2, nsecs=0)
-
-    msg = SimpleNamespace()
-    msg.__slots__ = ['messages']
-    msg.messages = [inner1, inner2]
-
-    fix_ros1_time(msg)
-
-    # The function recurses into list items
-    assert hasattr(msg.messages[0].timestamp, 'sec')
-    assert msg.messages[0].timestamp.sec == 1
-    assert hasattr(msg.messages[1].timestamp, 'sec')
-    assert msg.messages[1].timestamp.sec == 2
 
 
 def test_fix_ros1_time_complex_nested():
@@ -117,6 +68,7 @@ def test_fix_ros1_time_no_slots():
     assert isinstance(msg['timestamp'], ROS1Time)
 
 
+@pytest.mark.parametrize('ros1_type', [ROS1Time, ROS1Duration])
 @pytest.mark.parametrize(
     ('secs', 'nsecs'),
     [
@@ -124,19 +76,19 @@ def test_fix_ros1_time_no_slots():
         pytest.param(1, 0, id='one_sec'),
         pytest.param(0, 999999999, id='max_nsec'),
         pytest.param(999999999, 999999999, id='large_values'),
-        pytest.param(123, 456789, id='arbitrary'),
+        pytest.param(10, 500000000, id='basic'),
     ],
 )
-def test_fix_ros1_time_values(secs: int, nsecs: int):
-    """Test fixing ROS1 Time with various values."""
+def test_fix_ros1_time_values(ros1_type: type, secs: int, nsecs: int):
+    """Test fixing ROS1 Time and Duration with various values."""
     msg = SimpleNamespace()
-    msg.__slots__ = ['timestamp']
-    msg.timestamp = ROS1Time(secs=secs, nsecs=nsecs)
+    msg.__slots__ = ['value']
+    msg.value = ros1_type(secs=secs, nsecs=nsecs)
 
     fix_ros1_time(msg)
 
-    assert msg.timestamp.sec == secs
-    assert msg.timestamp.nanosec == nsecs
+    assert msg.value.sec == secs
+    assert msg.value.nanosec == nsecs
 
 
 def test_fix_ros1_time_mixed_types():

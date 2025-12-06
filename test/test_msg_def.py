@@ -37,7 +37,7 @@ def test_get_message_definition_with_dependencies():
     # Header has a dependency on builtin_interfaces/Time
     result = get_message_definition('std_msgs/msg/Header', ROS2Distro.HUMBLE)
     assert result is not None
-    assert 'builtin_interfaces/Time stamp' in result or 'time stamp' in result.lower()
+    assert 'builtin_interfaces/Time stamp' in result
 
 
 @pytest.mark.parametrize(
@@ -68,3 +68,24 @@ def test_get_message_definition_with_custom_folder(tmp_path: Path):
     assert result is not None
     assert 'int32 value' in result
     assert 'string name' in result
+
+
+def test_get_message_definition_custom_with_std_msgs_dep(tmp_path: Path):
+    """Test custom message that references std_msgs resolves dependencies."""
+    # Create a custom message that depends on std_msgs/Header
+    msg_dir = tmp_path / 'custom_pkg' / 'msg'
+    msg_dir.mkdir(parents=True)
+
+    msg_file = msg_dir / 'CustomWithHeader.msg'
+    msg_file.write_text('std_msgs/Header header\nstring name\n')
+
+    result = get_message_definition(
+        'custom_pkg/CustomWithHeader', ROS2Distro.HUMBLE, folder=tmp_path
+    )
+    assert result is not None
+    # Custom message content
+    assert 'std_msgs/Header header' in result
+    assert 'string name' in result
+    # Resolved dependency (std_msgs/Header definition)
+    assert 'MSG: std_msgs/Header' in result
+    assert 'builtin_interfaces/Time stamp' in result

@@ -76,25 +76,6 @@ def test_dump_qos_list_multiple():
     assert 'depth: 20' in result
 
 
-def test_qos_roundtrip():
-    """Test that QoS can be dumped and parsed back."""
-    original = Qos(
-        history=HistoryPolicy.KEEP_LAST,
-        depth=15,
-        reliability=ReliabilityPolicy.RELIABLE,
-        durability=DurabilityPolicy.VOLATILE,
-        liveliness=LivelinessPolicy.AUTOMATIC,
-    )
-    yaml_str = dump_qos_list(original)
-    parsed = parse_qos_list(yaml_str)
-    assert len(parsed) == 1
-    assert parsed[0].history == original.history
-    assert parsed[0].depth == original.depth
-    assert parsed[0].reliability == original.reliability
-    assert parsed[0].durability == original.durability
-    assert parsed[0].liveliness == original.liveliness
-
-
 @pytest.mark.parametrize(
     'qos_data',
     [
@@ -118,6 +99,16 @@ def test_qos_roundtrip():
             Qos(durability=DurabilityPolicy.TRANSIENT_LOCAL),
             id='transient_local',
         ),
+        pytest.param(
+            Qos(
+                history=HistoryPolicy.KEEP_LAST,
+                depth=15,
+                reliability=ReliabilityPolicy.RELIABLE,
+                durability=DurabilityPolicy.VOLATILE,
+                liveliness=LivelinessPolicy.AUTOMATIC,
+            ),
+            id='roundtrip_all_fields',
+        ),
     ],
 )
 def test_qos_configurations(qos_data: Qos):
@@ -129,6 +120,7 @@ def test_qos_configurations(qos_data: Qos):
     assert parsed[0].depth == qos_data.depth
     assert parsed[0].reliability == qos_data.reliability
     assert parsed[0].durability == qos_data.durability
+    assert parsed[0].liveliness == qos_data.liveliness
 
 
 def test_qos_with_durations():

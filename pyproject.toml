@@ -27,7 +27,7 @@ dependencies = [
     "pointcloud2>=0.2.3",
     "pydantic-yaml>=1.2.1",
     "platformdirs>=4.3.8",
-    "kappe[ros1]", # remove when pyyaml is no longer imported by jsonargparse
+    "kappe[ros1]",  # remove when pyyaml is no longer imported by jsonargparse
 ]
 
 [project.optional-dependencies]
