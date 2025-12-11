@@ -107,9 +107,9 @@ class DecompressImage(ConverterPlugin):
     def convert(self, ros_msg: Any) -> Any:
         stream = BytesIO(ros_msg.data)
         img = Image.open(stream)
-        
+
         img = img.convert('L')  # 'L' = 8-bit pixels, black and white
-        
+
         width, height = img.size
         raw_data = img.tobytes()
 
@@ -117,9 +117,9 @@ class DecompressImage(ConverterPlugin):
             'header': ros_msg.header,
             'height': height,
             'width': width,
-            'encoding': 'mono8',  
+            'encoding': 'mono8',
             'is_bigendian': 0,
-            'step': width , 
+            'step': width,
             'data': raw_data,
         }
 
