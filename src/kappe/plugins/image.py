@@ -92,3 +92,37 @@ class SaveCompress(ConverterPlugin):
         img = Image.open(stream)
         with Path(f'{self.counter:08}.jpeg').open('wb') as f:
             img.save(f, format='jpeg', quality=self.quality)
+
+
+class DecompressImage(ConverterPlugin):
+    """
+    Decompresses a sensor_msgs/msg/CompressedImage into raw image data
+    suitable for a sensor_msgs/msg/Image message.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        logger.debug('DecompressImage initialized')
+
+    def convert(self, ros_msg: Any) -> Any:
+        stream = BytesIO(ros_msg.data)
+        img = Image.open(stream)
+        
+        img = img.convert('L')  # 'L' = 8-bit pixels, black and white
+        
+        width, height = img.size
+        raw_data = img.tobytes()
+
+        return {
+            'header': ros_msg.header,
+            'height': height,
+            'width': width,
+            'encoding': 'mono8',  
+            'is_bigendian': 0,
+            'step': width , 
+            'data': raw_data,
+        }
+
+    @property
+    def output_schema(self) -> str:
+        return 'sensor_msgs/msg/Image'
