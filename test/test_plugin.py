@@ -4,8 +4,10 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from google.protobuf import descriptor_pb2
+from google.protobuf.descriptor import Descriptor
 
-from kappe.plugin import ConverterPlugin, load_plugin, module_get_plugins
+from kappe.plugin import ConverterPlugin, ProtobufConverterPlugin, load_plugin, module_get_plugins
 
 
 class _OneConverterPlugin(ConverterPlugin):
@@ -239,3 +241,71 @@ class Converter(ConverterPlugin):
 
         with pytest.raises(ValueError, match='Plugin file loader_none_plugin does not exist'):
             load_plugin(tmp_path, 'loader_none_plugin')
+
+
+class _ConcreteProtobufPlugin(ProtobufConverterPlugin):
+    """Concrete protobuf converter plugin for testing."""
+
+    @property
+    def descriptor(self) -> Descriptor:
+        return descriptor_pb2.FileDescriptorProto.DESCRIPTOR
+
+    def convert(self, ros_msg: Any) -> Any:
+        return ros_msg
+
+
+def test_protobuf_converter_plugin_abstract():
+    """Test that ProtobufConverterPlugin is abstract and requires descriptor implementation."""
+    with pytest.raises(TypeError):
+        ProtobufConverterPlugin()  # type: ignore[abstract]
+
+
+def test_protobuf_converter_plugin_output_schema():
+    """Test that ProtobufConverterPlugin.output_schema returns descriptor full_name."""
+    plugin = _ConcreteProtobufPlugin()
+    assert plugin.output_schema == descriptor_pb2.FileDescriptorProto.DESCRIPTOR.full_name
+    assert plugin.output_schema == 'google.protobuf.FileDescriptorProto'
+
+
+def test_protobuf_converter_plugin_is_subclass():
+    """Test that ProtobufConverterPlugin is a subclass of ConverterPlugin."""
+    assert issubclass(ProtobufConverterPlugin, ConverterPlugin)
+    plugin = _ConcreteProtobufPlugin()
+    assert isinstance(plugin, ConverterPlugin)
+    assert isinstance(plugin, ProtobufConverterPlugin)
+
+
+def test_protobuf_converter_plugin_convert_with_times():
+    """Test that convert_with_times delegates to convert by default."""
+    plugin = _ConcreteProtobufPlugin()
+    msg = {'test': 'data'}
+    result = plugin.convert_with_times(msg, log_time_ns=100, publish_time_ns=200)
+    assert result == msg
+
+
+def test_converter_plugin_convert_with_times_default():
+    """Test that ConverterPlugin.convert_with_times calls convert by default."""
+    plugin = _OneConverterPlugin()
+    msg = {'test': 'data'}
+    result = plugin.convert_with_times(msg, log_time_ns=100, publish_time_ns=200)
+    assert result == {'converted': msg}
+
+
+def test_module_get_plugins_excludes_abstract_classes():
+    """Test that module_get_plugins excludes ProtobufConverterPlugin base class."""
+    mock_module = MagicMock()
+    mock_module.__dict__ = {
+        'ConcreteProtobufPlugin': _ConcreteProtobufPlugin,
+        'ConverterPlugin': ConverterPlugin,
+        'ProtobufConverterPlugin': ProtobufConverterPlugin,
+    }
+
+    with (
+        patch('kappe.plugin.dir', return_value=list(mock_module.__dict__.keys())),
+        patch('kappe.plugin.getattr', side_effect=lambda _, k: mock_module.__dict__[k]),
+    ):
+        plugins = module_get_plugins(mock_module)
+
+    assert 'ConcreteProtobufPlugin' in plugins
+    assert 'ConverterPlugin' not in plugins
+    assert 'ProtobufConverterPlugin' not in plugins

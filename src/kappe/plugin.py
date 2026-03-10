@@ -1,3 +1,4 @@
+import inspect
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -49,7 +50,7 @@ def module_get_plugins(module: ModuleType) -> list[str]:
         for cls in dir(module)
         if isinstance(getattr(module, cls), type)
         and issubclass(getattr(module, cls), ConverterPlugin)
-        and cls != 'ConverterPlugin'
+        and not inspect.isabstract(getattr(module, cls))
     ]
 
 
