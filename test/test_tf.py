@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kappe.module.tf import SettingTF, SettingTFOffset, tf_apply_offset
+from kappe.module.tf import SettingTF, SettingTFOffset, tf_apply_offset, tf_remove
 from kappe.utils.settings import SettingRotation, SettingTranslation
 from kappe.writer import WrappedDecodedMessage
 
@@ -366,3 +366,28 @@ def test_setting_rotation_rpy_to_quaternion(
     actual = rotation.quaternion
 
     assert actual == pytest.approx(expected_quat, abs=1e-10)
+
+
+def test_tf_remove_all():
+    """Test tf_remove with 'all' option."""
+    # Create mock transform
+    mock_transform = MagicMock()
+    mock_transform.child_frame_id = 'test_frame'
+
+    # Create mock ROS message with transforms
+    mock_ros_msg = MagicMock()
+    mock_ros_msg.transforms = [mock_transform]
+
+    # Create mock wrapped message
+    msg = MagicMock(spec=WrappedDecodedMessage)
+    msg.decoded_message = mock_ros_msg
+
+    # Create config with remove='all'
+    cfg = SettingTF(remove='all')
+
+    # Apply removal
+    result = tf_remove(cfg, msg)
+
+    # Should remove all transforms
+    assert len(mock_ros_msg.transforms) == 0
+    assert result is False

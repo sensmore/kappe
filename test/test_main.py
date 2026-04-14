@@ -1,9 +1,11 @@
 import subprocess
 import sys
 import tempfile
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
+from kappe.cli import KappeCLI
 from kappe.cli import main as kappe_main
 from kappe.utils.json_to_mcap import json_to_mcap
 
@@ -32,6 +34,19 @@ def test_main_module_import():
     """Test that the main module can be imported."""
     # This should not raise an ImportError
     from kappe import __main__  # noqa: F401
+
+
+def test_version_command():
+    """Test that the version command outputs version information."""
+    cli = KappeCLI()
+    output = StringIO()
+
+    with patch('sys.stdout', output):
+        cli.version()
+
+    result = output.getvalue()
+    assert 'Kappe' in result
+    assert 'Python' in result
 
 
 def test_single_file_output():

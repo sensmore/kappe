@@ -242,47 +242,55 @@ dependencies = [
     { name = "pointcloud2" },
     { name = "pydantic" },
     { name = "pydantic-yaml" },
-    { name = "pyyaml" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
+all = [
+    { name = "mcap-ros1-support" },
+    { name = "pillow" },
+]
 plugin-image = [
     { name = "pillow" },
+]
+ros1 = [
+    { name = "mcap-ros1-support" },
 ]
 
 [package.dev-dependencies]
 test = [
-    { name = "kappe", extra = ["plugin-image"] },
+    { name = "kappe", extra = ["all"] },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "jsonargparse", extras = ["signatures"], specifier = ">=4.35.0" },
+    { name = "kappe", extras = ["ros1"] },
     { name = "mcap", specifier = ">=1.0.2" },
-    { name = "mcap-ros1-support", specifier = ">=0.6.0" },
+    { name = "mcap-ros1-support", marker = "extra == 'all'", specifier = ">=0.6.0" },
+    { name = "mcap-ros1-support", marker = "extra == 'ros1'", specifier = ">=0.6.0" },
     { name = "mcap-ros2-support", specifier = ">=0.3.0" },
     { name = "numpy" },
+    { name = "pillow", marker = "extra == 'all'", specifier = ">=8.0.0" },
     { name = "pillow", marker = "extra == 'plugin-image'", specifier = ">=8.0.0" },
     { name = "platformdirs", specifier = ">=4.3.8" },
     { name = "pointcloud2", specifier = ">=0.2.3" },
     { name = "pydantic", specifier = ">=2.4.2" },
     { name = "pydantic-yaml", specifier = ">=1.2.1" },
-    { name = "pyyaml", specifier = ">=6.0.1" },
-    { name = "scipy", specifier = ">=1.11.1" },
     { name = "tqdm" },
 ]
-provides-extras = ["plugin-image"]
+provides-extras = ["all", "plugin-image", "ros1"]
 
 [package.metadata.requires-dev]
 test = [
-    { name = "kappe", extras = ["plugin-image"] },
+    { name = "kappe", extras = ["all"] },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "scipy", specifier = ">=1.11.1" },
 ]
 
 [[package]]

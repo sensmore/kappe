@@ -1,8 +1,8 @@
 import numpy as np
 from pointcloud2 import create_cloud, read_points
 from pydantic import BaseModel
-from scipy.spatial.transform import Rotation
 
+from kappe.utils.rotation import rotate_points
 from kappe.utils.settings import SettingEgoBounds, SettingRotation
 from kappe.writer import WrappedDecodedMessage
 
@@ -55,10 +55,9 @@ def point_cloud(cfg: SettingPointCloud, msg: WrappedDecodedMessage) -> None:
 
         quat = cfg.rotation.quaternion
         if quat is not None:
-            rot = Rotation.from_quat(np.array(quat))
             stack = np.column_stack([cloud['x'], cloud['y'], cloud['z']])
 
-            r_cloud = rot.apply(stack)
+            r_cloud = rotate_points(stack, quat)
 
             cloud['x'] = r_cloud[:, 0]
             cloud['y'] = r_cloud[:, 1]

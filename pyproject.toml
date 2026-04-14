@@ -15,22 +15,29 @@ classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
 ]
 
+dynamic = ["version"]
+
 dependencies = [
     "mcap>=1.0.2",
-    "mcap-ros1-support>=0.6.0",
     "mcap-ros2-support>=0.3.0",
     "numpy",
     "pydantic>=2.4.2",
     "tqdm",
-    "pyyaml>=6.0.1",
-    "scipy>=1.11.1",
     "jsonargparse[signatures]>=4.35.0",
     "pointcloud2>=0.2.3",
     "pydantic-yaml>=1.2.1",
     "platformdirs>=4.3.8",
+    "kappe[ros1]",  # remove when pyyaml is no longer imported by jsonargparse
 ]
 
-dynamic = ["version"]
+[project.optional-dependencies]
+all = ["kappe[plugin_image, ros1]"]
+plugin_image = ["pillow>=8.0.0"]
+ros1 = ["mcap-ros1-support>=0.6.0"]
+
+[dependency-groups]
+test = ["pytest-cov>=6.2.1", "pytest>=8.4.1", "kappe[all]", "scipy>=1.11.1"]
+
 
 [project.urls]
 repository = "https://github.com/sensmore/kappe"
@@ -39,13 +46,6 @@ repository = "https://github.com/sensmore/kappe"
 kappe = "kappe.cli:main"
 mcap_to_json = "kappe.utils.mcap_to_json:main"
 json_to_mcap = "kappe.utils.json_to_mcap:main"
-
-[project.optional-dependencies]
-plugin_image = ["pillow>=8.0.0"]
-
-[dependency-groups]
-test = ["pytest-cov>=6.2.1", "pytest>=8.4.1", "kappe[plugin_image]"]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -82,13 +82,11 @@ ignore = [
     # formater
     'COM812', # missing-trailing-comma
     'ISC001', # single-line-implicit-string-concatenation
-
-    'UP038', # Deprecated rule
 ]
 
 [tool.ruff.lint.per-file-ignores]
 # Relaxed lints for test files
-"test/**/*.py" = ["T201", "SLF001", "ANN201"]
+"test/**/*.py" = ["T201", "SLF001", "ANN201", "PLC0415"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'
