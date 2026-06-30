@@ -158,5 +158,6 @@ def test_roundtrip_writes_integers():
     """kappe writes integers (readable on every distro); re-parsing is stable."""
     qos = parse_qos_list(JAZZY)
     dumped = dump_qos_list(qos)
-    assert 'keep_last' not in dumped and 'history: 1' in dumped
+    assert 'keep_last' not in dumped
+    assert 'history: 1' in dumped
     assert parse_qos_list(dumped) == qos
