@@ -1,7 +1,9 @@
+from collections.abc import Callable
 from dataclasses import field
 from enum import IntEnum
+from typing import Annotated
 
-from pydantic import RootModel
+from pydantic import BeforeValidator, RootModel
 from pydantic.dataclasses import dataclass
 from pydantic_yaml import parse_yaml_raw_as, to_yaml_str
 
@@ -61,6 +63,28 @@ class LivelinessPolicy(IntEnum):
     BEST_AVAILABLE = 5
 
 
+def _coerce_qos_enum(enum_cls: type[IntEnum]) -> Callable[[object], object]:
+    """Build a validator that accepts a QoS policy as an integer OR a string name.
+
+    rosbag2 on ROS 2 Iron+/Jazzy serializes ``offered_qos_profiles`` policies as string
+    names (e.g. ``'keep_last'``); older bags used the integer value. Map the string form
+    onto the enum (case-insensitive); pass ints/enums through unchanged.
+    """
+
+    def _validate(value: object) -> object:
+        if isinstance(value, str) and not value.isdigit():
+            return enum_cls[value.upper()]
+        return value
+
+    return _validate
+
+
+_History = Annotated[HistoryPolicy, BeforeValidator(_coerce_qos_enum(HistoryPolicy))]
+_Reliability = Annotated[ReliabilityPolicy, BeforeValidator(_coerce_qos_enum(ReliabilityPolicy))]
+_Durability = Annotated[DurabilityPolicy, BeforeValidator(_coerce_qos_enum(DurabilityPolicy))]
+_Liveliness = Annotated[LivelinessPolicy, BeforeValidator(_coerce_qos_enum(LivelinessPolicy))]
+
+
 @dataclass
 class QosDuration:
     sec: int
@@ -73,13 +97,13 @@ QOS_DURATION_INFINITE = QosDuration(sec=9223372036, nsec=854775807)
 
 @dataclass
 class Qos:
-    history: HistoryPolicy = HistoryPolicy.KEEP_LAST
+    history: _History = HistoryPolicy.KEEP_LAST
     depth: int = 10
-    reliability: ReliabilityPolicy = ReliabilityPolicy.BEST_EFFORT
-    durability: DurabilityPolicy = DurabilityPolicy.VOLATILE
+    reliability: _Reliability = ReliabilityPolicy.BEST_EFFORT
+    durability: _Durability = DurabilityPolicy.VOLATILE
     deadline: QosDuration = field(default_factory=lambda: QOS_DURATION_DEFAULT)
     lifespan: QosDuration = field(default_factory=lambda: QOS_DURATION_DEFAULT)
-    liveliness: LivelinessPolicy = LivelinessPolicy.SYSTEM_DEFAULT
+    liveliness: _Liveliness = LivelinessPolicy.SYSTEM_DEFAULT
     liveliness_lease_duration: QosDuration = field(default_factory=lambda: QOS_DURATION_DEFAULT)
     avoid_ros_namespace_conventions: bool = False
 
